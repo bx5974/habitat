@@ -1,7 +1,0 @@
-{{~#eachAlive svc.members as |member|}}
-Member ID: {{member.member_id}}
-{{~/eachAlive}}
-
-{{~#each svc.members as |member|}}
-Member ID: {{member.member_id}}
-{{~/each}}

@@ -13,11 +13,7 @@
 // limitations under the License.
 
 mod composite_spec;
-pub mod config;
-mod dir;
-pub mod health;
-pub mod hooks;
-mod package;
+mod context;
 pub mod spec;
 mod supervisor;
 
@@ -34,6 +30,7 @@ use std::time::Instant;
 use butterfly::rumor::service::Service as ServiceRumor;
 use hcore;
 use hcore::crypto::hash;
+use hcore::fs::SvcDir;
 use hcore::fs::FS_ROOT_PATH;
 use hcore::package::metadata::Bind;
 use hcore::package::{PackageIdent, PackageInstall};
@@ -45,21 +42,14 @@ use serde::{Serialize, Serializer};
 use time::Timespec;
 
 pub use self::composite_spec::CompositeSpec;
-use self::config::CfgRenderer;
-pub use self::config::{Cfg, UserConfigPath};
-use self::dir::SvcDir;
-pub use self::health::HealthCheck;
-use self::hooks::{Hook, HookTable};
-pub use self::package::{Env, Pkg, PkgProxy};
+use self::context::RenderContext;
 pub use self::spec::{BindMap, DesiredState, IntoServiceSpec, ServiceBind, ServiceSpec, Spec};
 use self::supervisor::Supervisor;
 use super::ShutdownReason;
 use super::Sys;
 use census::{CensusGroup, CensusRing, ElectionStatus, ServiceFile};
 use error::{Error, Result, SupError};
-use fs;
 use manager;
-use templating::RenderContext;
 
 static LOGKEY: &'static str = "SR";
 
@@ -165,6 +155,7 @@ impl Service {
     ) -> Result<Service> {
         spec.validate(&package)?;
         let all_pkg_binds = package.all_binds()?;
+        let hook_table = HookTable::from_package_install(&package, spec.config_from.as_ref());
         let pkg = Pkg::from_install(package)?;
         let spec_file = manager_fs_cfg.specs_path.join(spec.file_name());
         let service_group = ServiceGroup::new(
@@ -174,7 +165,6 @@ impl Service {
             organization,
         )?;
         let config_root = Self::config_root(&pkg, spec.config_from.as_ref());
-        let hooks_root = Self::hooks_root(&pkg, spec.config_from.as_ref());
         Ok(Service {
             sys: sys,
             cfg: Cfg::new(&pkg, spec.config_from.as_ref())?,
@@ -183,11 +173,7 @@ impl Service {
             channel: spec.channel,
             desired_state: spec.desired_state,
             health_check: HealthCheck::default(),
-            hooks: HookTable::load(
-                &service_group,
-                &hooks_root,
-                fs::svc_hooks_path(&service_group.service()),
-            ),
+            hooks: hook_table,
             initialized: false,
             last_election_status: ElectionStatus::None,
             needs_reload: false,
@@ -223,14 +209,6 @@ impl Service {
             .join("config")
     }
 
-    /// Returns the hooks root given the package and optional config-from path.
-    fn hooks_root(package: &Pkg, config_from: Option<&PathBuf>) -> PathBuf {
-        config_from
-            .and_then(|p| Some(p.as_path()))
-            .unwrap_or(&package.path)
-            .join("hooks")
-    }
-
     pub fn load(
         sys: Arc<Sys>,
         spec: ServiceSpec,
@@ -254,7 +232,7 @@ impl Service {
     /// Create the service path for this package.
     pub fn create_svc_path(&self) -> Result<()> {
         debug!("{}, Creating svc paths", self.service_group);
-        SvcDir::new(&self.pkg).create()
+        Ok(SvcDir::new(&self.pkg.name, &self.pkg.svc_user, &self.pkg.svc_group).create()?)
     }
 
     fn start(&mut self, launcher: &LauncherCli) {
@@ -571,6 +549,24 @@ impl Service {
         self.supervisor.state == ProcessState::Down
     }
 
+    /// Updates the service configuration with data from a census group if the census group has
+    /// newer data than the current configuration.
+    ///
+    /// Returns `true` if the configuration was updated.
+    fn update_gossip(&mut self, census_group: &CensusGroup) -> bool {
+        match census_group.service_config {
+            Some(ref config) => {
+                if config.incarnation <= self.cfg.gossip_incarnation {
+                    return false;
+                }
+                self.cfg
+                    .set_gossip(config.incarnation, config.value.clone());
+                true
+            }
+            None => false,
+        }
+    }
+
     /// Compares the current state of the service to the current state of the census ring and the
     /// user-config, and re-renders all templatable content to disk.
     ///
@@ -579,7 +575,7 @@ impl Service {
         let census_group = census_ring
             .census_group_for(&self.service_group)
             .expect("Service update failed; unable to find own service group");
-        let cfg_updated_from_rumors = self.cfg.update(census_group);
+        let cfg_updated_from_rumors = self.update_gossip(census_group);
         let cfg_changed =
             self.defaults_updated || cfg_updated_from_rumors || self.user_config_updated;
 
@@ -620,6 +616,7 @@ impl Service {
 
     /// Replace the package of the running service and restart its system process.
     pub fn update_package(&mut self, package: PackageInstall, launcher: &LauncherCli) {
+        let hook_table = HookTable::from_package_install(&package, self.config_from.as_ref());
         match Pkg::from_install(package) {
             Ok(pkg) => {
                 outputln!(preamble self.service_group,
@@ -635,11 +632,7 @@ impl Service {
                         return;
                     }
                 }
-                self.hooks = HookTable::load(
-                    &self.service_group,
-                    &Self::hooks_root(&pkg, self.config_from.as_ref()),
-                    fs::svc_hooks_path(self.service_group.service()),
-                );
+                self.hooks = hook_table;
                 self.pkg = pkg;
             }
             Err(err) => {
@@ -772,7 +765,10 @@ impl Service {
     ///
     /// Returns `true` if the configuration has changed.
     fn compile_configuration(&self, ctx: &RenderContext) -> bool {
-        match self.config_renderer.compile(&self.pkg, ctx) {
+        match self
+            .config_renderer
+            .compile(&ctx.service_group_name(), &self.pkg, ctx)
+        {
             Ok(true) => true,
             Ok(false) => false,
             Err(e) => {
@@ -1046,10 +1042,10 @@ impl Service {
 
     #[cfg(not(windows))]
     fn set_gossip_permissions<T: AsRef<Path>>(&self, path: T) -> bool {
+        use hcore::os::users;
         use hcore::util::posix_perm;
-        use sys::abilities;
 
-        if abilities::can_run_services_as_svc_user() {
+        if users::can_run_services_as_svc_user() {
             let result =
                 posix_perm::set_owner(path.as_ref(), &self.pkg.svc_user, &self.pkg.svc_group);
             if let Err(e) = result {

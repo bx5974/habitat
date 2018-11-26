@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Chef Software Inc. and/or applicable contributors
+// Copyright (c) 2018 Chef Software Inc. and/or applicable contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,4 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub use sys::exec::*;
+use std::path::Path;
+
+use common::ui::{UIWriter, UI};
+use hcore::package::{PackageIdent, PackageInstall};
+use hcore::templating;
+
+use error::Result;
+
+pub fn start(ui: &mut UI, ident: &PackageIdent, fs_root_path: &Path) -> Result<()> {
+    let pkg_install = PackageInstall::load(ident, Some(fs_root_path))?;
+    templating::compile_from_package_install(&pkg_install)?;
+    ui.end(format!("Compiling templates for '{}' completed", ident,))?;
+    Ok(())
+}

@@ -53,6 +53,9 @@ use hcore::fs::pkg_install_path;
 use hcore::package::list::temp_package_directory;
 use hcore::package::metadata::PackageType;
 use hcore::package::{Identifiable, PackageArchive, PackageIdent, PackageInstall, PackageTarget};
+use hcore::templating;
+use hcore::templating::hooks::{Hook, HookTable};
+use hcore::templating::package::Pkg;
 use hyper::status::StatusCode;
 
 use error::{Error, Result};
@@ -197,6 +200,32 @@ impl Default for InstallMode {
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
+pub enum InstallHookMode {
+    Default,
+    Force,
+    Ignore,
+}
+
+impl Default for InstallHookMode {
+    fn default() -> Self {
+        InstallHookMode::Default
+    }
+}
+
+impl FromStr for InstallHookMode {
+    type Err = Error;
+
+    fn from_str(value: &str) -> Result<Self> {
+        match value {
+            "default" => Ok(InstallHookMode::Default),
+            "force" => Ok(InstallHookMode::Force),
+            "ignore" => Ok(InstallHookMode::Ignore),
+            _ => return Err(Error::InvalidInstallHookMode(value.to_string())),
+        }
+    }
+}
+
 /// When querying Builder, we may not find a package that satisfies
 /// the desired package identifier, but we may have such a package
 /// already installed locally. In most cases, it should be fine for us
@@ -337,6 +366,7 @@ pub fn start<U, P1, P2>(
     token: Option<&str>,
     install_mode: &InstallMode,
     local_package_usage: &LocalPackageUsage,
+    install_hook_mode: &InstallHookMode,
 ) -> Result<PackageInstall>
 where
     U: UIWriter,
@@ -363,6 +393,7 @@ where
         fs_root_path.as_ref(),
         artifact_cache_path.as_ref(),
         &key_cache_path,
+        install_hook_mode,
     )?;
 
     match *install_source {
@@ -382,6 +413,7 @@ struct InstallTask<'a> {
     /// The path to the local artifact cache (e.g., /hab/cache/artifacts)
     artifact_cache_path: &'a Path,
     key_cache_path: &'a Path,
+    install_hook_mode: &'a InstallHookMode,
 }
 
 impl<'a> InstallTask<'a> {
@@ -395,6 +427,7 @@ impl<'a> InstallTask<'a> {
         fs_root_path: &'a Path,
         artifact_cache_path: &'a Path,
         key_cache_path: &'a Path,
+        install_hook_mode: &'a InstallHookMode,
     ) -> Result<Self> {
         Ok(InstallTask {
             install_mode: install_mode,
@@ -404,6 +437,7 @@ impl<'a> InstallTask<'a> {
             fs_root_path: fs_root_path,
             artifact_cache_path: artifact_cache_path,
             key_cache_path: key_cache_path,
+            install_hook_mode: install_hook_mode,
         })
     }
 
@@ -437,6 +471,9 @@ impl<'a> InstallTask<'a> {
             Some(package_install) => {
                 // The installed package was found on disk
                 ui.status(Status::Using, &target_ident)?;
+                if self.install_hook_mode == &InstallHookMode::Force {
+                    self.run_all_install_hooks(ui, &target_ident, target, token)?;
+                }
                 ui.end(format!(
                     "Install of {} complete with {} new packages installed.",
                     &target_ident, 0
@@ -467,6 +504,9 @@ impl<'a> InstallTask<'a> {
             Some(package_install) => {
                 // The installed package was found on disk
                 ui.status(Status::Using, &target_ident)?;
+                if self.install_hook_mode == &InstallHookMode::Force {
+                    self.run_all_install_hooks(ui, &target_ident, &local_archive.target, token)?;
+                }
                 ui.end(format!(
                     "Install of {} complete with {} new packages installed.",
                     &target_ident, 0
@@ -631,6 +671,12 @@ impl<'a> InstallTask<'a> {
                         .is_some()
                     {
                         ui.status(Status::Using, dependency)?;
+                        if self.install_hook_mode == &InstallHookMode::Force {
+                            self.run_install_hook(
+                                ui,
+                                &PackageInstall::load(dependency, Some(self.fs_root_path))?,
+                            )?;
+                        }
                     } else {
                         artifacts_to_install.push(self.get_cached_artifact(
                             ui,
@@ -648,6 +694,12 @@ impl<'a> InstallTask<'a> {
                 // Ensure all uninstalled artifacts get installed
                 for artifact in artifacts_to_install.iter_mut() {
                     self.unpack_artifact(ui, artifact)?;
+                    if self.install_hook_mode != &InstallHookMode::Ignore {
+                        self.run_install_hook(
+                            ui,
+                            &PackageInstall::load(&artifact.ident()?, Some(self.fs_root_path))?,
+                        )?;
+                    }
                 }
 
                 ui.end(format!(
@@ -752,6 +804,53 @@ impl<'a> InstallTask<'a> {
             }
             None => unreachable!("Install path doesn't have a parent"),
         }
+    }
+
+    fn run_all_install_hooks<T>(
+        &self,
+        ui: &mut T,
+        ident: &FullyQualifiedPackageIdent,
+        target: &PackageTarget,
+        token: Option<&str>,
+    ) -> Result<()>
+    where
+        T: UIWriter,
+    {
+        let mut artifact = self.get_cached_artifact(ui, ident, target, token)?;
+        let dependencies = artifact.tdeps()?;
+
+        for dependency in dependencies.iter() {
+            self.run_install_hook(
+                ui,
+                &PackageInstall::load(dependency, Some(self.fs_root_path))?,
+            )?;
+        }
+
+        self.run_install_hook(
+            ui,
+            &PackageInstall::load(&artifact.ident()?, Some(self.fs_root_path))?,
+        )
+    }
+
+    fn run_install_hook<T>(&self, ui: &mut T, package: &PackageInstall) -> Result<()>
+    where
+        T: UIWriter,
+    {
+        let hooks = HookTable::from_package_install(package, None);
+
+        if let Some(ref hook) = hooks.install {
+            ui.status(
+                Status::Executing,
+                format!("install hook for '{}'", &package.ident(),),
+            )?;
+            templating::compile_from_package_install(package)?;
+            hook.run(
+                &package.ident().name,
+                &Pkg::from_install(package.clone())?,
+                None::<String>,
+            );
+        }
+        Ok(())
     }
 
     /// Adapter function to retrieve an installed package given an

@@ -1,3 +1,0 @@
-#!/bin/bash
-
-echo "The message is {{cfg.message}}"

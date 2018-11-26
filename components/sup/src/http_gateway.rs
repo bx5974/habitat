@@ -41,8 +41,6 @@ use serde_json::{self, Value as Json};
 
 use error::{Result, SupError};
 use manager;
-use manager::service::hooks::{self, HealthCheckHook};
-use manager::service::HealthCheck;
 
 use feat;
 
@@ -118,16 +116,6 @@ struct HealthCheckBody {
     status: String,
     stdout: String,
     stderr: String,
-}
-
-impl Into<StatusCode> for HealthCheck {
-    fn into(self) -> StatusCode {
-        match self {
-            HealthCheck::Ok | HealthCheck::Warning => StatusCode::OK,
-            HealthCheck::Critical => StatusCode::SERVICE_UNAVAILABLE,
-            HealthCheck::Unknown => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    }
 }
 
 struct AppState {

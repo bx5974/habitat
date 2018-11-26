@@ -39,6 +39,7 @@ pub enum Error {
     EditStatus,
     FileNameError,
     HabitatCore(hcore::Error),
+    InvalidInstallHookMode(String),
     /// Occurs when making lower level IO calls.
     IO(io::Error),
     OfflineArtifactNotFound(PackageIdent),
@@ -74,6 +75,9 @@ impl fmt::Display for Error {
             Error::EditStatus => format!("Failed edit text command"),
             Error::FileNameError => format!("Failed to extract a filename"),
             Error::HabitatCore(ref e) => format!("{}", e),
+            Error::InvalidInstallHookMode(ref e) => {
+                format!("Invalid InstallHookMode conversion from {}", e)
+            }
             Error::IO(ref err) => format!("{}", err),
             Error::OfflineArtifactNotFound(ref ident) => {
                 format!("Cached artifact not found in offline mode: {}", ident)
@@ -118,6 +122,7 @@ impl error::Error for Error {
             Error::EditStatus => "Failed edit text command",
             Error::FileNameError => "Failed to extract a filename from a path",
             Error::HabitatCore(ref err) => err.description(),
+            Error::InvalidInstallHookMode(_) => "Invalid InstallHookMode",
             Error::IO(ref err) => err.description(),
             Error::OfflineArtifactNotFound(_) => "Cached artifact not found in offline mode",
             Error::OfflineOriginKeyNotFound(_) => "Cached origin key not found in offline mode",

@@ -24,10 +24,12 @@ use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::result;
 
+use hcore::fs;
 use hcore::os::process::{self, Pid};
 #[cfg(unix)]
 use hcore::os::users;
 use hcore::service::ServiceGroup;
+use hcore::templating::package::Pkg;
 use launcher_client::LauncherCli;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
@@ -36,10 +38,6 @@ use time::{self, Timespec};
 use super::ProcessState;
 use super::ShutdownReason;
 use error::{Error, Result};
-use fs;
-use manager::service::Pkg;
-#[cfg(unix)]
-use sys::abilities;
 
 static LOGKEY: &'static str = "SV";
 
@@ -110,7 +108,7 @@ impl Supervisor {
     // self.preamble, and even then only for Linux :/
     #[cfg(unix)]
     fn user_info(&self, pkg: &Pkg) -> Result<UserInfo> {
-        if abilities::can_run_services_as_svc_user() {
+        if users::can_run_services_as_svc_user() {
             // We have the ability to run services as a user / group other
             // than ourselves, so they better exist
             let uid = users::get_uid_by_name(&pkg.svc_user)

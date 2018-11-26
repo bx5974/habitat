@@ -18,10 +18,10 @@ use std::path::PathBuf;
 use std::ptr;
 
 use hcore::fs::find_command;
+use hcore::util::path;
 use libc;
 
 use error::{Error, Result};
-use util::path;
 
 /// Our output key
 static LOGKEY: &'static str = "SH";

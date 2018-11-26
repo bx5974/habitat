@@ -22,7 +22,9 @@ use std::str::FromStr;
 
 use clap;
 use common;
-use common::command::package::install::{InstallMode, InstallSource, LocalPackageUsage};
+use common::command::package::install::{
+    InstallHookMode, InstallMode, InstallSource, LocalPackageUsage,
+};
 use common::ui::{Status, UIWriter, UI};
 #[cfg(unix)]
 use failure::SyncFailure;
@@ -379,6 +381,7 @@ impl<'a> BuildSpec<'a> {
             &InstallMode::default(),
             // TODO (CM): pass through and enable ignore-local mode
             &LocalPackageUsage::default(),
+            &InstallHookMode::default(),
         )?;
         Ok(package_install.into())
     }

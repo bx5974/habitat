@@ -65,7 +65,6 @@ extern crate habitat_api_client as api_client;
 extern crate habitat_eventsrv_client as eventsrv_client;
 extern crate habitat_launcher_client as launcher_client;
 extern crate habitat_sup_protocol as protocol;
-extern crate handlebars;
 #[macro_use]
 extern crate lazy_static;
 extern crate libc;
@@ -117,11 +116,8 @@ pub mod command;
 pub mod config;
 pub mod ctl_gateway;
 pub mod error;
-pub mod fs;
 pub mod http_gateway;
 pub mod manager;
-mod sys;
-pub mod templating;
 #[cfg(test)]
 pub mod test_helpers;
 pub mod util;
