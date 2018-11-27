@@ -1,4 +1,5 @@
 FROM microsoft/windowsservercore
 ADD {{rootfs}} /
 EXPOSE 9631 {{exposes}}
+RUN {{hab_path}} pkg install {{primary_svc_ident}} --install-hook force
 ENTRYPOINT ["{{hab_path}}", "sup", "run", "{{primary_svc_ident}}"]
