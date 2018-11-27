@@ -472,7 +472,7 @@ impl<'a> InstallTask<'a> {
                 // The installed package was found on disk
                 ui.status(Status::Using, &target_ident)?;
                 if self.install_hook_mode == &InstallHookMode::Force {
-                    self.run_all_install_hooks(ui, &target_ident, target, token)?;
+                    self.run_all_install_hooks(ui, &target_ident)?;
                 }
                 ui.end(format!(
                     "Install of {} complete with {} new packages installed.",
@@ -505,7 +505,7 @@ impl<'a> InstallTask<'a> {
                 // The installed package was found on disk
                 ui.status(Status::Using, &target_ident)?;
                 if self.install_hook_mode == &InstallHookMode::Force {
-                    self.run_all_install_hooks(ui, &target_ident, &local_archive.target, token)?;
+                    self.run_all_install_hooks(ui, &target_ident)?;
                 }
                 ui.end(format!(
                     "Install of {} complete with {} new packages installed.",
@@ -806,18 +806,12 @@ impl<'a> InstallTask<'a> {
         }
     }
 
-    fn run_all_install_hooks<T>(
-        &self,
-        ui: &mut T,
-        ident: &FullyQualifiedPackageIdent,
-        target: &PackageTarget,
-        token: Option<&str>,
-    ) -> Result<()>
+    fn run_all_install_hooks<T>(&self, ui: &mut T, ident: &FullyQualifiedPackageIdent) -> Result<()>
     where
         T: UIWriter,
     {
-        let mut artifact = self.get_cached_artifact(ui, ident, target, token)?;
-        let dependencies = artifact.tdeps()?;
+        let package = PackageInstall::load(ident.as_ref(), Some(self.fs_root_path))?;
+        let dependencies = package.tdeps()?;
 
         for dependency in dependencies.iter() {
             self.run_install_hook(
@@ -826,10 +820,7 @@ impl<'a> InstallTask<'a> {
             )?;
         }
 
-        self.run_install_hook(
-            ui,
-            &PackageInstall::load(&artifact.ident()?, Some(self.fs_root_path))?,
-        )
+        self.run_install_hook(ui, &package)
     }
 
     fn run_install_hook<T>(&self, ui: &mut T, package: &PackageInstall) -> Result<()>
