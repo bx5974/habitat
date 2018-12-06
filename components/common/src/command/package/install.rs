@@ -48,13 +48,12 @@ use glob;
 use hcore;
 use hcore::crypto::keys::parse_name_with_rev;
 use hcore::crypto::{artifact, SigKeyPair};
-use hcore::fs::cache_key_path;
-use hcore::fs::pkg_install_path;
+use hcore::fs::{cache_key_path, pkg_install_path, svc_hooks_path};
 use hcore::package::list::temp_package_directory;
 use hcore::package::metadata::PackageType;
 use hcore::package::{Identifiable, PackageArchive, PackageIdent, PackageInstall, PackageTarget};
 use hcore::templating;
-use hcore::templating::hooks::Hook;
+use hcore::templating::hooks::{Hook, InstallHook};
 use hcore::templating::package::Pkg;
 use hyper::status::StatusCode;
 
@@ -827,20 +826,21 @@ impl<'a> InstallTask<'a> {
     where
         T: UIWriter,
     {
-        // let hooks = HookTable::from_package_install(package, None);
-
-        // if let Some(ref hook) = hooks.install {
-        //     ui.status(
-        //         Status::Executing,
-        //         format!("install hook for '{}'", &package.ident(),),
-        //     )?;
-        //     templating::compile_from_package_install(package)?;
-        //     hook.run(
-        //         &package.ident().name,
-        //         &Pkg::from_install(package.clone())?,
-        //         None::<String>,
-        //     );
-        // }
+        if let Some(ref hook) = InstallHook::load(
+            &package.ident.name,
+            &package.installed_path.join("hooks"),
+            &svc_hooks_path(package.ident.name.clone())) {
+            ui.status(
+                Status::Executing,
+                format!("install hook for '{}'", &package.ident(),),
+            )?;
+            templating::compile_from_package_install(package)?;
+            hook.run(
+                &package.ident().name,
+                &Pkg::from_install(package.clone())?,
+                None::<String>,
+            );
+        }
         Ok(())
     }
 
