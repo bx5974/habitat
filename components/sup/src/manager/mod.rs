@@ -55,7 +55,6 @@ use hcore::os::process::{self, Pid, Signal};
 use hcore::os::signals::{self, SignalEvent};
 use hcore::package::{Identifiable, PackageIdent, PackageInstall};
 use hcore::service::ServiceGroup;
-use hcore::templating::health::HealthCheck;
 pub use hcore::templating::package::Pkg;
 use launcher_client::{LauncherCli, LAUNCHER_LOCK_CLEAN_ENV, LAUNCHER_PID_ENV};
 use protocol;
@@ -71,7 +70,7 @@ pub use self::service::{
     CompositeSpec, ConfigRendering, Service, ServiceProxy, ServiceSpec, Spec, Topology,
     UpdateStrategy,
 };
-use self::service::{DesiredState, IntoServiceSpec, ProcessState};
+use self::service::{health::HealthCheck, DesiredState, IntoServiceSpec, ProcessState};
 use self::service_updater::ServiceUpdater;
 use self::spec_dir::SpecDir;
 use self::spec_watcher::SpecWatcher;

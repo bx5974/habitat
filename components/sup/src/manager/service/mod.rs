@@ -14,6 +14,8 @@
 
 mod composite_spec;
 mod context;
+pub mod health;
+pub mod hooks;
 pub mod spec;
 mod supervisor;
 
@@ -30,8 +32,7 @@ use std::time::Instant;
 use butterfly::rumor::service::Service as ServiceRumor;
 use hcore;
 use hcore::crypto::hash;
-use hcore::fs::SvcDir;
-use hcore::fs::FS_ROOT_PATH;
+use hcore::fs::{FS_ROOT_PATH, svc_hooks_path, SvcDir};
 use hcore::package::metadata::Bind;
 use hcore::package::{PackageIdent, PackageInstall};
 use hcore::service::{HealthCheckInterval, ServiceGroup};
@@ -43,6 +44,8 @@ use time::Timespec;
 
 pub use self::composite_spec::CompositeSpec;
 use self::context::RenderContext;
+pub use self::health::{HealthCheck, SmokeCheck};
+use self::hooks::HookTable;
 pub use self::spec::{BindMap, DesiredState, IntoServiceSpec, ServiceBind, ServiceSpec, Spec};
 use self::supervisor::Supervisor;
 use super::ShutdownReason;
@@ -155,7 +158,6 @@ impl Service {
     ) -> Result<Service> {
         spec.validate(&package)?;
         let all_pkg_binds = package.all_binds()?;
-        let hook_table = HookTable::from_package_install(&package, spec.config_from.as_ref());
         let pkg = Pkg::from_install(package)?;
         let spec_file = manager_fs_cfg.specs_path.join(spec.file_name());
         let service_group = ServiceGroup::new(
@@ -165,6 +167,7 @@ impl Service {
             organization,
         )?;
         let config_root = Self::config_root(&pkg, spec.config_from.as_ref());
+        let hooks_root = Self::hooks_root(&pkg, spec.config_from.as_ref());
         Ok(Service {
             sys: sys,
             cfg: Cfg::new(&pkg, spec.config_from.as_ref())?,
@@ -173,7 +176,11 @@ impl Service {
             channel: spec.channel,
             desired_state: spec.desired_state,
             health_check: HealthCheck::default(),
-            hooks: hook_table,
+            hooks: HookTable::load(
+                &service_group,
+                &hooks_root,
+                svc_hooks_path(&service_group.service()),
+            ),
             initialized: false,
             last_election_status: ElectionStatus::None,
             needs_reload: false,
@@ -207,6 +214,14 @@ impl Service {
             .and_then(|p| Some(p.as_path()))
             .unwrap_or(&package.path)
             .join("config")
+    }
+
+    /// Returns the hooks root given the package and optional config-from path.
+    fn hooks_root(package: &Pkg, config_from: Option<&PathBuf>) -> PathBuf {
+        config_from
+            .and_then(|p| Some(p.as_path()))
+            .unwrap_or(&package.path)
+            .join("hooks")
     }
 
     pub fn load(
@@ -616,7 +631,6 @@ impl Service {
 
     /// Replace the package of the running service and restart its system process.
     pub fn update_package(&mut self, package: PackageInstall, launcher: &LauncherCli) {
-        let hook_table = HookTable::from_package_install(&package, self.config_from.as_ref());
         match Pkg::from_install(package) {
             Ok(pkg) => {
                 outputln!(preamble self.service_group,
@@ -632,7 +646,11 @@ impl Service {
                         return;
                     }
                 }
-                self.hooks = hook_table;
+                self.hooks = HookTable::load(
+                    &self.service_group,
+                    &Self::hooks_root(&pkg, self.config_from.as_ref()),
+                    svc_hooks_path(self.service_group.service()),
+                );
                 self.pkg = pkg;
             }
             Err(err) => {

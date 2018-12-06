@@ -54,7 +54,7 @@ use hcore::package::list::temp_package_directory;
 use hcore::package::metadata::PackageType;
 use hcore::package::{Identifiable, PackageArchive, PackageIdent, PackageInstall, PackageTarget};
 use hcore::templating;
-use hcore::templating::hooks::{Hook, HookTable};
+use hcore::templating::hooks::Hook;
 use hcore::templating::package::Pkg;
 use hyper::status::StatusCode;
 
@@ -827,20 +827,20 @@ impl<'a> InstallTask<'a> {
     where
         T: UIWriter,
     {
-        let hooks = HookTable::from_package_install(package, None);
+        // let hooks = HookTable::from_package_install(package, None);
 
-        if let Some(ref hook) = hooks.install {
-            ui.status(
-                Status::Executing,
-                format!("install hook for '{}'", &package.ident(),),
-            )?;
-            templating::compile_from_package_install(package)?;
-            hook.run(
-                &package.ident().name,
-                &Pkg::from_install(package.clone())?,
-                None::<String>,
-            );
-        }
+        // if let Some(ref hook) = hooks.install {
+        //     ui.status(
+        //         Status::Executing,
+        //         format!("install hook for '{}'", &package.ident(),),
+        //     )?;
+        //     templating::compile_from_package_install(package)?;
+        //     hook.run(
+        //         &package.ident().name,
+        //         &Pkg::from_install(package.clone())?,
+        //         None::<String>,
+        //     );
+        // }
         Ok(())
     }
 

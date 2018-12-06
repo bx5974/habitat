@@ -35,12 +35,14 @@ use common::defaults::{
     LISTEN_HTTP_ADDRESS_ENVVAR, LISTEN_HTTP_DEFAULT_IP, LISTEN_HTTP_DEFAULT_PORT,
 };
 use config::EnvConfig;
-use hcore::{crypto, env as henv, service::ServiceGroup};
+use hcore::{crypto, env as henv, service::ServiceGroup, templating::hooks};
+
 use rustls::ServerConfig;
 use serde_json::{self, Value as Json};
 
 use error::{Result, SupError};
 use manager;
+use manager::service::hooks::HealthCheckHook;
 
 use feat;
 
