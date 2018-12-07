@@ -750,8 +750,8 @@ mod tests {
     use protocol;
     use tempfile::TempDir;
 
-    use super::*;
     use super::super::RenderContext;
+    use super::*;
     use census::CensusRing;
     use config::GossipListenAddr;
     use http_gateway;

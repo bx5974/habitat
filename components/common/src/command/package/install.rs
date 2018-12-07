@@ -199,16 +199,21 @@ impl Default for InstallMode {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+/// Governs how install hooks behave when loading packages
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum InstallHookMode {
-    Default,
-    Force,
-    Ignore,
+    /// Only run the install hook when the package is installed
+    Once,
+    /// Run the install hook and all dependent install hooks regardless
+    /// of whether the packages were previously installed
+    Always,
+    /// Do not run any install hooks when loading a package
+    Never,
 }
 
 impl Default for InstallHookMode {
     fn default() -> Self {
-        InstallHookMode::Default
+        InstallHookMode::Once
     }
 }
 
@@ -217,9 +222,9 @@ impl FromStr for InstallHookMode {
 
     fn from_str(value: &str) -> Result<Self> {
         match value {
-            "default" => Ok(InstallHookMode::Default),
-            "force" => Ok(InstallHookMode::Force),
-            "ignore" => Ok(InstallHookMode::Ignore),
+            "once" => Ok(InstallHookMode::Once),
+            "always" => Ok(InstallHookMode::Always),
+            "never" => Ok(InstallHookMode::Never),
             _ => return Err(Error::InvalidInstallHookMode(value.to_string())),
         }
     }
@@ -470,7 +475,7 @@ impl<'a> InstallTask<'a> {
             Some(package_install) => {
                 // The installed package was found on disk
                 ui.status(Status::Using, &target_ident)?;
-                if self.install_hook_mode == &InstallHookMode::Force {
+                if self.install_hook_mode == &InstallHookMode::Always {
                     self.run_all_install_hooks(ui, &target_ident)?;
                 }
                 ui.end(format!(
@@ -503,7 +508,7 @@ impl<'a> InstallTask<'a> {
             Some(package_install) => {
                 // The installed package was found on disk
                 ui.status(Status::Using, &target_ident)?;
-                if self.install_hook_mode == &InstallHookMode::Force {
+                if self.install_hook_mode == &InstallHookMode::Always {
                     self.run_all_install_hooks(ui, &target_ident)?;
                 }
                 ui.end(format!(
@@ -670,7 +675,7 @@ impl<'a> InstallTask<'a> {
                         .is_some()
                     {
                         ui.status(Status::Using, dependency)?;
-                        if self.install_hook_mode == &InstallHookMode::Force {
+                        if self.install_hook_mode == &InstallHookMode::Always {
                             self.run_install_hook(
                                 ui,
                                 &PackageInstall::load(dependency, Some(self.fs_root_path))?,
@@ -693,7 +698,7 @@ impl<'a> InstallTask<'a> {
                 // Ensure all uninstalled artifacts get installed
                 for artifact in artifacts_to_install.iter_mut() {
                     self.unpack_artifact(ui, artifact)?;
-                    if self.install_hook_mode != &InstallHookMode::Ignore {
+                    if self.install_hook_mode != &InstallHookMode::Never {
                         self.run_install_hook(
                             ui,
                             &PackageInstall::load(&artifact.ident()?, Some(self.fs_root_path))?,
@@ -810,9 +815,8 @@ impl<'a> InstallTask<'a> {
         T: UIWriter,
     {
         let package = PackageInstall::load(ident.as_ref(), Some(self.fs_root_path))?;
-        let dependencies = package.tdeps()?;
 
-        for dependency in dependencies.iter() {
+        for dependency in package.tdeps()?.iter() {
             self.run_install_hook(
                 ui,
                 &PackageInstall::load(dependency, Some(self.fs_root_path))?,
@@ -829,7 +833,8 @@ impl<'a> InstallTask<'a> {
         if let Some(ref hook) = InstallHook::load(
             &package.ident.name,
             &svc_hooks_path(package.ident.name.clone()),
-            &package.installed_path.join("hooks")) {
+            &package.installed_path.join("hooks"),
+        ) {
             ui.status(
                 Status::Executing,
                 format!("install hook for '{}'", &package.ident(),),

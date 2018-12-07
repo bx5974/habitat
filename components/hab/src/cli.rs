@@ -794,7 +794,7 @@ fn sub_pkg_install() -> App<'static, 'static> {
         (@arg FORCE: -f --force "Overwrite existing binlinks")
         (@arg AUTH_TOKEN: -z --auth +takes_value "Authentication token for Builder")
         (@arg INSTALL_HOOK_MODE: --("install-hook") +takes_value {valid_install_hook_mode} 
-            "The install hook behavior; [default: default] [values: default, force, ignore]")
+            "The install hook behavior; [default: once] [values: once, always, never]")
     );
     if feat::is_enabled(feat::OfflineInstall) {
         sub = sub.arg(
@@ -1095,7 +1095,7 @@ fn valid_install_hook_mode(val: String) -> result::Result<(), String> {
     match InstallHookMode::from_str(&val) {
         Ok(_) => Ok(()),
         Err(_) => Err(format!(
-            "INSTALL_HOOK_MODE: {} is invalid, must be one of (default, force, ignore)",
+            "INSTALL_HOOK_MODE: {} is invalid, must be one of (once, always, never)",
             &val
         )),
     }

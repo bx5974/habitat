@@ -659,7 +659,6 @@ fn sub_pkg_install(ui: &mut UI, m: &ArgMatches) -> Result<()> {
     let channel = channel_from_matches(m);
     let install_sources = install_sources_from_matches(m)?;
     let token = maybe_auth_token(&m);
-    let install_hook_mode = get_install_hook_mode_from_input(m).unwrap_or_default();
     let install_mode = if feat::is_enabled(feat::OfflineInstall) && m.is_present("OFFLINE") {
         InstallMode::Offline
     } else {
@@ -688,7 +687,7 @@ fn sub_pkg_install(ui: &mut UI, m: &ArgMatches) -> Result<()> {
             token.as_ref().map(String::as_str),
             &install_mode,
             &local_package_usage,
-            &install_hook_mode,
+            &get_install_hook_mode(m),
         )?;
 
         if m.is_present("BINLINK") {
@@ -1656,9 +1655,12 @@ fn get_health_check_interval_from_input(
         .map(|s| s.into())
 }
 
-fn get_install_hook_mode_from_input(m: &ArgMatches) -> Option<InstallHookMode> {
-    m.value_of("INSTALL_HOOK_MODE")
-        .and_then(|f| InstallHookMode::from_str(f).ok())
+fn get_install_hook_mode(m: &ArgMatches) -> InstallHookMode {
+    match m.value_of("INSTALL_HOOK_MODE") {
+        // unwrap ok because of valid_install_hook_mode has already run
+        Some(s) => InstallHookMode::from_str(s).unwrap(),
+        None => InstallHookMode::default(),
+    }
 }
 
 #[cfg(target_os = "windows")]

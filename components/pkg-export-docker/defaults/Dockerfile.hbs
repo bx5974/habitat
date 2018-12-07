@@ -3,6 +3,6 @@ ENV PATH {{path}}
 ADD {{rootfs}} /
 
 EXPOSE 9631 {{exposes}}
-RUN {{hab_path}} pkg install {{installed_primary_svc_ident}} --install-hook force
+RUN {{hab_path}} pkg install {{installed_primary_svc_ident}} --install-hook never
 ENTRYPOINT ["/init.sh"]
 CMD ["run", "{{primary_svc_ident}}"]
