@@ -828,13 +828,13 @@ impl<'a> InstallTask<'a> {
     {
         if let Some(ref hook) = InstallHook::load(
             &package.ident.name,
-            &package.installed_path.join("hooks"),
-            &svc_hooks_path(package.ident.name.clone())) {
+            &svc_hooks_path(package.ident.name.clone()),
+            &package.installed_path.join("hooks")) {
             ui.status(
                 Status::Executing,
                 format!("install hook for '{}'", &package.ident(),),
             )?;
-            templating::compile_from_package_install(package)?;
+            templating::compile_for_package_install(package)?;
             hook.run(
                 &package.ident().name,
                 &Pkg::from_install(package.clone())?,
