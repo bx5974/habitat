@@ -357,11 +357,6 @@ pub fn get() -> App<'static, 'static> {
                     "Sets the destination directory (default: /bin)")
                 (@arg FORCE: -f --force "Overwrite existing binlinks")
             )
-            (@subcommand compile =>
-                (about: "Compiles configuration files and hooks of an installed package")
-                (@arg PKG_IDENT: +required +takes_value {valid_ident}
-                    "A package identifier (ex: core/redis, core/busybox-static/1.42.2)")
-            )
             (@subcommand config =>
                 (about: "Displays the default configuration options for a service")
                 (aliases: &["conf", "cfg"])

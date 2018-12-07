@@ -785,7 +785,7 @@ impl Service {
     fn compile_configuration(&self, ctx: &RenderContext) -> bool {
         match self
             .config_renderer
-            .compile(&ctx.service_group_name(), &self.pkg, ctx)
+            .compile(&ctx.service_group_name(), &self.pkg, &self.pkg.svc_config_path, ctx)
         {
             Ok(true) => true,
             Ok(false) => false,
