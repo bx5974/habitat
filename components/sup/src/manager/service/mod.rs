@@ -32,7 +32,7 @@ use std::time::Instant;
 use butterfly::rumor::service::Service as ServiceRumor;
 use hcore;
 use hcore::crypto::hash;
-use hcore::fs::{FS_ROOT_PATH, svc_hooks_path, SvcDir};
+use hcore::fs::{svc_hooks_path, SvcDir, FS_ROOT_PATH};
 use hcore::package::metadata::Bind;
 use hcore::package::{PackageIdent, PackageInstall};
 use hcore::service::{HealthCheckInterval, ServiceGroup};
@@ -783,10 +783,12 @@ impl Service {
     ///
     /// Returns `true` if the configuration has changed.
     fn compile_configuration(&self, ctx: &RenderContext) -> bool {
-        match self
-            .config_renderer
-            .compile(&ctx.service_group_name(), &self.pkg, &self.pkg.svc_config_path, ctx)
-        {
+        match self.config_renderer.compile(
+            &ctx.service_group_name(),
+            &self.pkg,
+            &self.pkg.svc_config_path,
+            ctx,
+        ) {
             Ok(true) => true,
             Ok(false) => false,
             Err(e) => {
@@ -840,7 +842,7 @@ impl Service {
 
     #[cfg(not(windows))]
     fn set_hook_permissions<T: AsRef<Path>>(path: T) -> hcore::error::Result<()> {
-        use self::hooks::HOOK_PERMISSIONS;
+        use hcore::templating::hooks::HOOK_PERMISSIONS;
         use hcore::util::posix_perm;
 
         posix_perm::set_permissions(path.as_ref(), HOOK_PERMISSIONS)

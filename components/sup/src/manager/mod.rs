@@ -70,7 +70,6 @@ pub use self::service::{
     CompositeSpec, ConfigRendering, Service, ServiceProxy, ServiceSpec, Spec, Topology,
     UpdateStrategy,
 };
-use self::service::{health::HealthCheck, DesiredState, IntoServiceSpec, ProcessState};
 use self::service_updater::ServiceUpdater;
 use self::spec_dir::SpecDir;
 use self::spec_watcher::SpecWatcher;
