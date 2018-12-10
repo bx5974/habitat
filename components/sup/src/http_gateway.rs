@@ -34,7 +34,7 @@ use actix_web::{
 use common::cli_defaults::{
     LISTEN_HTTP_ADDRESS_ENVVAR, LISTEN_HTTP_DEFAULT_IP, LISTEN_HTTP_DEFAULT_PORT,
 };
-use common::EnvConfig;
+use common::types::EnvConfig;
 use hcore::{crypto, env as henv, service::ServiceGroup};
 use rustls::ServerConfig;
 use serde_json::{self, Value as Json};

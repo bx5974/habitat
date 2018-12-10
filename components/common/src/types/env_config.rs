@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2018 Chef Software Inc. and/or applicable contributors
+// Copyright (c) 2018 Chef Software Inc. and/or applicable contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,14 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-//! Configuration for the Supervisor.
-//!
-//! This module is populated from the CLI options in `main.rs`, and then passed through to the
-//! [command](../command) modules. Check out the `config_from_args(..)` function there for more
-//! details.
-//!
-//! See the [Config](struct.Config.html) struct for the specific options available.
 
 use std::env::VarError;
 use std::str::FromStr;
@@ -63,7 +55,7 @@ pub trait EnvConfig: Default + FromStr {
     /// value was found and was successfully parsed as a `Self`.
     ///
     /// By default, we log a message at the `warn` level.
-    fn log_parsable(env_value: &String) {
+    fn log_parsable(env_value: &str) {
         warn!(
             "Found '{}' in environment; using value '{}'",
             Self::ENVVAR,
