@@ -177,7 +177,7 @@ impl Service {
             desired_state: spec.desired_state,
             health_check: HealthCheck::default(),
             hooks: HookTable::load(
-                &service_group,
+                &pkg.name,
                 &hooks_root,
                 svc_hooks_path(&service_group.service()),
             ),
@@ -647,7 +647,7 @@ impl Service {
                     }
                 }
                 self.hooks = HookTable::load(
-                    &self.service_group,
+                    &pkg.name,
                     &Self::hooks_root(&pkg, self.config_from.as_ref()),
                     svc_hooks_path(self.service_group.service()),
                 );
