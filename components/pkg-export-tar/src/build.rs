@@ -14,7 +14,9 @@
 
 use clap;
 use common;
-use common::command::package::install::{InstallMode, InstallSource, LocalPackageUsage};
+use common::command::package::install::{
+    InstallHookMode, InstallMode, InstallSource, LocalPackageUsage,
+};
 use common::ui::{Status, UIWriter, UI};
 use error::Result;
 use hcore::fs::{cache_artifact_path, cache_key_path, CACHE_ARTIFACT_PATH, CACHE_KEY_PATH};
@@ -218,6 +220,7 @@ impl<'a> BuildSpec<'a> {
             &InstallMode::default(),
             // TODO (CM): pass through and enable ignore-local mode
             &LocalPackageUsage::default(),
+            &InstallHookMode::Never,
         )?;
         Ok(package_install.into())
     }
