@@ -51,7 +51,7 @@ impl Hook for FileUpdatedHook {
         }
     }
 
-    fn handle_exit<'a>(&self, _: &str, _: &'a HookOutput, status: &ExitStatus) -> Self::ExitValue {
+    fn handle_exit<'a>(&self, _: &Pkg, _: &'a HookOutput, status: &ExitStatus) -> Self::ExitValue {
         status.success()
     }
 
@@ -96,22 +96,23 @@ impl Hook for HealthCheckHook {
 
     fn handle_exit<'a>(
         &self,
-        service_group: &str,
+        pkg: &Pkg,
         _: &'a HookOutput,
         status: &ExitStatus,
     ) -> Self::ExitValue {
+        let pkg_name = &pkg.name;
         match status.code() {
             Some(0) => health::HealthCheck::Ok,
             Some(1) => health::HealthCheck::Warning,
             Some(2) => health::HealthCheck::Critical,
             Some(3) => health::HealthCheck::Unknown,
             Some(code) => {
-                outputln!(preamble service_group,
+                outputln!(preamble pkg_name,
                     "Health check exited with an unknown status code, {}", code);
                 health::HealthCheck::default()
             }
             None => {
-                Self::output_termination_message(service_group, status);
+                Self::output_termination_message(pkg_name, status);
                 health::HealthCheck::default()
             }
         }
@@ -158,19 +159,20 @@ impl Hook for InitHook {
 
     fn handle_exit<'a>(
         &self,
-        service_group: &str,
+        pkg: &Pkg,
         _: &'a HookOutput,
         status: &ExitStatus,
     ) -> Self::ExitValue {
+        let pkg_name = &pkg.name;
         match status.code() {
             Some(0) => true,
             Some(code) => {
-                outputln!(preamble service_group, "Initialization failed! '{}' exited with \
+                outputln!(preamble pkg_name, "Initialization failed! '{}' exited with \
                     status code {}", Self::file_name(), code);
                 false
             }
             None => {
-                outputln!(preamble service_group, "Initialization failed! '{}' exited without a \
+                outputln!(preamble pkg_name, "Initialization failed! '{}' exited without a \
                     status code", Self::file_name());
                 false
             }
@@ -228,14 +230,14 @@ impl Hook for RunHook {
 
     fn handle_exit<'a>(
         &self,
-        service_group: &str,
+        pkg: &Pkg,
         _: &'a HookOutput,
         status: &ExitStatus,
     ) -> Self::ExitValue {
         match status.code() {
             Some(code) => ExitCode(code),
             None => {
-                Self::output_termination_message(service_group, status);
+                Self::output_termination_message(&pkg.name, status);
                 ExitCode::default()
             }
         }
@@ -282,14 +284,14 @@ impl Hook for PostRunHook {
 
     fn handle_exit<'a>(
         &self,
-        service_group: &str,
+        pkg: &Pkg,
         _: &'a HookOutput,
         status: &ExitStatus,
     ) -> Self::ExitValue {
         match status.code() {
             Some(code) => ExitCode(code),
             None => {
-                Self::output_termination_message(service_group, status);
+                Self::output_termination_message(&pkg.name, status);
                 ExitCode::default()
             }
         }
@@ -336,19 +338,20 @@ impl Hook for ReloadHook {
 
     fn handle_exit<'a>(
         &self,
-        service_group: &str,
+        pkg: &Pkg,
         _: &'a HookOutput,
         status: &ExitStatus,
     ) -> Self::ExitValue {
+        let pkg_name = &pkg.name;
         match status.code() {
             Some(0) => ExitCode(0),
             Some(code) => {
-                outputln!(preamble service_group, "Reload failed! '{}' exited with \
+                outputln!(preamble pkg_name, "Reload failed! '{}' exited with \
                     status code {}", Self::file_name(), code);
                 ExitCode(code)
             }
             None => {
-                Self::output_termination_message(service_group, status);
+                Self::output_termination_message(pkg_name, status);
                 ExitCode::default()
             }
         }
@@ -395,14 +398,14 @@ impl Hook for ReconfigureHook {
 
     fn handle_exit<'a>(
         &self,
-        service_group: &str,
+        pkg: &Pkg,
         _: &'a HookOutput,
         status: &ExitStatus,
     ) -> Self::ExitValue {
         match status.code() {
             Some(code) => ExitCode(code),
             None => {
-                Self::output_termination_message(service_group, status);
+                Self::output_termination_message(&pkg.name, status);
                 ExitCode::default()
             }
         }
@@ -449,7 +452,7 @@ impl Hook for SmokeTestHook {
 
     fn handle_exit<'a>(
         &self,
-        service_group: &str,
+        pkg: &Pkg,
         _: &'a HookOutput,
         status: &ExitStatus,
     ) -> Self::ExitValue {
@@ -457,7 +460,7 @@ impl Hook for SmokeTestHook {
             Some(0) => health::SmokeCheck::Ok,
             Some(code) => health::SmokeCheck::Failed(code),
             None => {
-                Self::output_termination_message(service_group, status);
+                Self::output_termination_message(&pkg.name, status);
                 health::SmokeCheck::Failed(-1)
             }
         }
@@ -504,10 +507,11 @@ impl Hook for SuitabilityHook {
 
     fn handle_exit<'a>(
         &self,
-        service_group: &str,
+        pkg: &Pkg,
         hook_output: &'a HookOutput,
         status: &ExitStatus,
     ) -> Self::ExitValue {
+        let pkg_name = &pkg.name;
         match status.code() {
             Some(0) => {
                 if let Some(reader) = hook_output.stdout() {
@@ -516,33 +520,33 @@ impl Hook for SuitabilityHook {
                             Ok(line) => {
                                 match line.trim().parse::<u64>() {
                                     Ok(suitability) => {
-                                        outputln!(preamble service_group,
+                                        outputln!(preamble pkg_name,
                                                   "Reporting suitability of: {}", suitability);
                                         return Some(suitability);
                                     }
                                     Err(err) => {
-                                        outputln!(preamble service_group,
+                                        outputln!(preamble pkg_name,
                                             "Parsing suitability failed: {}", err);
                                     }
                                 };
                             }
                             Err(err) => {
-                                outputln!(preamble service_group,
+                                outputln!(preamble pkg_name,
                                     "Failed to read last line of stdout: {}", err);
                             }
                         };
                     } else {
-                        outputln!(preamble service_group,
+                        outputln!(preamble pkg_name,
                                   "{} did not print anything to stdout", Self::file_name());
                     }
                 }
             }
             Some(code) => {
-                outputln!(preamble service_group,
+                outputln!(preamble pkg_name,
                     "{} exited with status code {}", Self::file_name(), code);
             }
             None => {
-                Self::output_termination_message(service_group, status);
+                Self::output_termination_message(pkg_name, status);
             }
         }
         None
@@ -589,19 +593,20 @@ impl Hook for PostStopHook {
 
     fn handle_exit<'a>(
         &self,
-        service_group: &str,
+        pkg: &Pkg,
         _: &'a HookOutput,
         status: &ExitStatus,
     ) -> Self::ExitValue {
+        let pkg_name = &pkg.name;
         match status.code() {
             Some(0) => true,
             Some(code) => {
-                outputln!(preamble service_group, "Post stop failed! '{}' exited with \
+                outputln!(preamble pkg_name, "Post stop failed! '{}' exited with \
                     status code {}", Self::file_name(), code);
                 false
             }
             None => {
-                Self::output_termination_message(service_group, status);
+                Self::output_termination_message(pkg_name, status);
                 false
             }
         }

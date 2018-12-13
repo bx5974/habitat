@@ -83,7 +83,10 @@ where
     T: UIWriter,
 {
     match installed(install_source) {
-        Some(package) => Ok(package),
+        Some(package) => {
+            common::command::package::install::run_install_hook_when_failed(ui, &package)?;
+            Ok(package)
+        }
         None => install(ui, bldr_url, install_source, channel),
     }
 }

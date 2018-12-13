@@ -16,6 +16,7 @@ use std::env;
 use std::error;
 use std::fmt;
 use std::io;
+use std::path::PathBuf;
 use std::result;
 use std::str;
 use std::string;
@@ -39,6 +40,7 @@ pub enum Error {
     EditStatus,
     FileNameError,
     HabitatCore(hcore::Error),
+    InstallHookFailed(PackageIdent),
     InvalidInstallHookMode(String),
     /// Occurs when making lower level IO calls.
     IO(io::Error),
@@ -52,6 +54,7 @@ pub enum Error {
     WireDecode(String),
     EditorEnv(env::VarError),
     PackageNotFound(String),
+    StatusFileCorrupt(PathBuf),
 }
 
 impl fmt::Display for Error {
@@ -75,6 +78,9 @@ impl fmt::Display for Error {
             Error::EditStatus => format!("Failed edit text command"),
             Error::FileNameError => format!("Failed to extract a filename"),
             Error::HabitatCore(ref e) => format!("{}", e),
+            Error::InstallHookFailed(ref ident) => {
+                format!("Install hook exited unsuccessfully: {}", ident)
+            }
             Error::InvalidInstallHookMode(ref e) => {
                 format!("Invalid InstallHookMode conversion from {}", e)
             }
@@ -100,6 +106,10 @@ impl fmt::Display for Error {
             Error::WireDecode(ref m) => format!("Failed to decode wire message: {}", m),
             Error::EditorEnv(ref e) => format!("Missing EDITOR environment variable: {}", e),
             Error::PackageNotFound(ref e) => format!("Package not found. {}", e),
+            Error::StatusFileCorrupt(ref path) => format!(
+                "Unable to decode contents of INSTALL_STATUS file, {}",
+                path.display()
+            ),
         };
         write!(f, "{}", msg)
     }
@@ -122,6 +132,7 @@ impl error::Error for Error {
             Error::EditStatus => "Failed edit text command",
             Error::FileNameError => "Failed to extract a filename from a path",
             Error::HabitatCore(ref err) => err.description(),
+            Error::InstallHookFailed(_) => "Install hook exited unsuccessfully",
             Error::InvalidInstallHookMode(_) => "Invalid InstallHookMode",
             Error::IO(ref err) => err.description(),
             Error::OfflineArtifactNotFound(_) => "Cached artifact not found in offline mode",
@@ -138,6 +149,7 @@ impl error::Error for Error {
             Error::WireDecode(_) => "Failed to decode wire message",
             Error::EditorEnv(_) => "Missing EDITOR environment variable",
             Error::PackageNotFound(_) => "Package not found",
+            Error::StatusFileCorrupt(_) => "Unable to decode contents of INSTALL_STATUS file",
         }
     }
 }

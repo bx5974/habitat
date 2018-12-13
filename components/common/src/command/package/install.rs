@@ -37,7 +37,8 @@
 
 use std::borrow::Cow;
 use std::fmt;
-use std::fs;
+use std::fs::{self, File};
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::result::Result as StdResult;
 use std::str::FromStr;
@@ -53,7 +54,7 @@ use hcore::package::list::temp_package_directory;
 use hcore::package::metadata::PackageType;
 use hcore::package::{Identifiable, PackageArchive, PackageIdent, PackageInstall, PackageTarget};
 use hcore::templating;
-use hcore::templating::hooks::{Hook, InstallHook};
+use hcore::templating::hooks::{Hook, InstallHook, INSTALL_HOOK_STATUS_FILE};
 use hcore::templating::package::Pkg;
 use hyper::status::StatusCode;
 
@@ -408,6 +409,57 @@ where
     }
 }
 
+pub fn run_install_hook_when_failed<T>(ui: &mut T, package: &PackageInstall) -> Result<()>
+where
+    T: UIWriter,
+{
+    match read_install_hook_status(package.installed_path.join(INSTALL_HOOK_STATUS_FILE))? {
+        Some(0) => Ok(()),
+        _ => run_install_hook(ui, package),
+    }
+}
+
+fn read_install_hook_status(path: PathBuf) -> Result<Option<i32>> {
+    match File::open(&path) {
+        Ok(file) => {
+            let reader = BufReader::new(file);
+            match reader.lines().next() {
+                Some(Ok(line)) => match line.parse::<i32>() {
+                    Ok(status) => Ok(Some(status)),
+                    Err(_) => Err(Error::StatusFileCorrupt(path)),
+                },
+                _ => Err(Error::StatusFileCorrupt(path)),
+            }
+        }
+        Err(_) => Ok(None),
+    }
+}
+
+fn run_install_hook<T>(ui: &mut T, package: &PackageInstall) -> Result<()>
+where
+    T: UIWriter,
+{
+    if let Some(ref hook) = InstallHook::load(
+        &package.ident.name,
+        &svc_hooks_path(package.ident.name.clone()),
+        &package.installed_path.join("hooks"),
+    ) {
+        ui.status(
+            Status::Executing,
+            format!("install hook for '{}'", &package.ident(),),
+        )?;
+        templating::compile_for_package_install(package)?;
+        if !hook.run(
+            &package.ident().name,
+            &Pkg::from_install(package.clone())?,
+            None::<String>,
+        ) {
+            return Err(Error::InstallHookFailed(package.ident().clone()));
+        }
+    }
+    Ok(())
+}
+
 struct InstallTask<'a> {
     install_mode: &'a InstallMode,
     local_package_usage: &'a LocalPackageUsage,
@@ -476,7 +528,7 @@ impl<'a> InstallTask<'a> {
                 // The installed package was found on disk
                 ui.status(Status::Using, &target_ident)?;
                 if self.install_hook_mode == &InstallHookMode::Always {
-                    self.run_all_install_hooks(ui, &target_ident)?;
+                    self.check_install_hooks(ui, &target_ident)?;
                 }
                 ui.end(format!(
                     "Install of {} complete with {} new packages installed.",
@@ -509,7 +561,7 @@ impl<'a> InstallTask<'a> {
                 // The installed package was found on disk
                 ui.status(Status::Using, &target_ident)?;
                 if self.install_hook_mode == &InstallHookMode::Always {
-                    self.run_all_install_hooks(ui, &target_ident)?;
+                    self.check_install_hooks(ui, &target_ident)?;
                 }
                 ui.end(format!(
                     "Install of {} complete with {} new packages installed.",
@@ -676,7 +728,7 @@ impl<'a> InstallTask<'a> {
                     {
                         ui.status(Status::Using, dependency)?;
                         if self.install_hook_mode == &InstallHookMode::Always {
-                            self.run_install_hook(
+                            run_install_hook(
                                 ui,
                                 &PackageInstall::load(dependency, Some(self.fs_root_path))?,
                             )?;
@@ -699,7 +751,7 @@ impl<'a> InstallTask<'a> {
                 for artifact in artifacts_to_install.iter_mut() {
                     self.unpack_artifact(ui, artifact)?;
                     if self.install_hook_mode != &InstallHookMode::Never {
-                        self.run_install_hook(
+                        run_install_hook(
                             ui,
                             &PackageInstall::load(&artifact.ident()?, Some(self.fs_root_path))?,
                         )?;
@@ -810,43 +862,31 @@ impl<'a> InstallTask<'a> {
         }
     }
 
-    fn run_all_install_hooks<T>(&self, ui: &mut T, ident: &FullyQualifiedPackageIdent) -> Result<()>
+    fn check_install_hooks<T>(&self, ui: &mut T, ident: &FullyQualifiedPackageIdent) -> Result<()>
     where
         T: UIWriter,
     {
         let package = PackageInstall::load(ident.as_ref(), Some(self.fs_root_path))?;
 
         for dependency in package.tdeps()?.iter() {
-            self.run_install_hook(
+            self.check_install_hook(
                 ui,
                 &PackageInstall::load(dependency, Some(self.fs_root_path))?,
             )?;
         }
 
-        self.run_install_hook(ui, &package)
+        self.check_install_hook(ui, &package)
     }
 
-    fn run_install_hook<T>(&self, ui: &mut T, package: &PackageInstall) -> Result<()>
+    fn check_install_hook<T>(&self, ui: &mut T, package: &PackageInstall) -> Result<()>
     where
         T: UIWriter,
     {
-        if let Some(ref hook) = InstallHook::load(
-            &package.ident.name,
-            &svc_hooks_path(package.ident.name.clone()),
-            &package.installed_path.join("hooks"),
-        ) {
-            ui.status(
-                Status::Executing,
-                format!("install hook for '{}'", &package.ident(),),
-            )?;
-            templating::compile_for_package_install(package)?;
-            hook.run(
-                &package.ident().name,
-                &Pkg::from_install(package.clone())?,
-                None::<String>,
-            );
+        if self.install_hook_mode == &InstallHookMode::Always {
+            return run_install_hook(ui, package);
         }
-        Ok(())
+
+        run_install_hook_when_failed(ui, package)
     }
 
     /// Adapter function to retrieve an installed package given an
