@@ -846,7 +846,7 @@ impl Service {
 
     #[cfg(not(windows))]
     fn set_hook_permissions<T: AsRef<Path>>(path: T) -> hcore::error::Result<()> {
-        use hcore::templating::hooks::HOOK_PERMISSIONS;
+        use common::templating::hooks::HOOK_PERMISSIONS;
         use hcore::util::posix_perm;
 
         posix_perm::set_permissions(path.as_ref(), HOOK_PERMISSIONS)
