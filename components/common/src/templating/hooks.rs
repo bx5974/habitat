@@ -242,7 +242,7 @@ pub trait Hook: fmt::Debug + Sized {
         T: ToString,
         S: AsRef<OsStr>,
     {
-        use os::users;
+        use hcore::os::users;
 
         let mut cmd = Command::new(path.as_ref());
         cmd.stdin(Stdio::null())

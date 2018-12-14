@@ -57,10 +57,10 @@ use hyper::status::StatusCode;
 use retry::retry;
 
 use error::{Error, Result};
-use ui::{Status, UIWriter};
 use templating;
 use templating::hooks::{Hook, InstallHook, INSTALL_HOOK_STATUS_FILE};
 use templating::package::Pkg;
+use ui::{Status, UIWriter};
 
 pub const RETRIES: u64 = 5;
 pub const RETRY_WAIT: u64 = 3000;

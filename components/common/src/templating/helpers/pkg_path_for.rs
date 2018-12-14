@@ -14,9 +14,9 @@
 
 use std::str::FromStr;
 
+use handlebars::{Handlebars, Helper, HelperDef, RenderContext, RenderError};
 use hcore::fs;
 use hcore::package::{Identifiable, PackageIdent};
-use handlebars::{Handlebars, Helper, HelperDef, RenderContext, RenderError};
 use serde_json;
 
 use super::super::RenderResult;

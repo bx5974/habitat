@@ -18,12 +18,12 @@ use std::ops::Deref;
 use std::path::PathBuf;
 use std::result;
 
-use serde::ser::SerializeStruct;
-use serde::{Serialize, Serializer};
 use hcore::fs;
 use hcore::os::users;
 use hcore::package::{PackageIdent, PackageInstall};
 use hcore::util::{deserialize_using_from_str, serialize_using_to_string};
+use serde::ser::SerializeStruct;
+use serde::{Serialize, Serializer};
 
 use error::{Error, Result};
 use util::path;
