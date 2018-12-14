@@ -53,15 +53,14 @@ use hcore::fs::{cache_key_path, pkg_install_path, svc_hooks_path};
 use hcore::package::list::temp_package_directory;
 use hcore::package::metadata::PackageType;
 use hcore::package::{Identifiable, PackageArchive, PackageIdent, PackageInstall, PackageTarget};
-use hcore::templating;
-use hcore::templating::hooks::{Hook, InstallHook, INSTALL_HOOK_STATUS_FILE};
-use hcore::templating::package::Pkg;
 use hyper::status::StatusCode;
+use retry::retry;
 
 use error::{Error, Result};
 use ui::{Status, UIWriter};
-
-use retry::retry;
+use templating;
+use templating::hooks::{Hook, InstallHook, INSTALL_HOOK_STATUS_FILE};
+use templating::package::Pkg;
 
 pub const RETRIES: u64 = 5;
 pub const RETRY_WAIT: u64 = 3000;

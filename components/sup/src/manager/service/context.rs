@@ -58,10 +58,10 @@ use serde::{Serialize, Serializer};
 use toml;
 
 use butterfly::rumor::service::SysInfo;
+use common::templating::config::Cfg;
+use common::templating::package::{Env, Pkg};
 use hcore::package::PackageIdent;
 use hcore::service::ServiceGroup;
-use hcore::templating::config::Cfg;
-use hcore::templating::package::{Env, Pkg};
 
 use census::{CensusGroup, CensusMember, CensusRing, ElectionStatus, MemberId};
 use manager::service::ServiceBind;
@@ -609,9 +609,9 @@ mod tests {
     use tempfile::TempDir;
 
     use butterfly::rumor::service::SysInfo;
+    use common::templating::config::PackageConfigPaths;
+    use common::templating::TemplateRenderer;
     use hcore::package::PackageIdent;
-    use hcore::templating::config::PackageConfigPaths;
-    use hcore::templating::TemplateRenderer;
 
     use manager::service::Cfg;
     use test_helpers::*;

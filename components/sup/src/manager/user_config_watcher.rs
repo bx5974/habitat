@@ -26,9 +26,9 @@ use std::time::Duration;
 
 use super::file_watcher::{default_file_watcher_with_no_initial_event, Callbacks};
 
+use common::templating::config::UserConfigPath;
 use hcore::fs::USER_CONFIG_FILE;
 use hcore::service::ServiceGroup;
-use hcore::templating::config::UserConfigPath;
 use manager::service::Service;
 
 static LOGKEY: &'static str = "UCW";

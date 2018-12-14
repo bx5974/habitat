@@ -30,6 +30,10 @@ use std::sync::{Arc, RwLock};
 use std::time::Instant;
 
 use butterfly::rumor::service::Service as ServiceRumor;
+use common::templating::config::CfgRenderer;
+pub use common::templating::config::{Cfg, UserConfigPath};
+use common::templating::hooks::Hook;
+pub use common::templating::package::{Env, Pkg, PkgProxy};
 use hcore;
 use hcore::crypto::hash;
 use hcore::fs::{svc_hooks_path, SvcDir, FS_ROOT_PATH};

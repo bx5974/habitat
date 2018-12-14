@@ -24,12 +24,12 @@ use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::result;
 
+use common::templating::package::Pkg;
 use hcore::fs;
 use hcore::os::process::{self, Pid};
 #[cfg(unix)]
 use hcore::os::users;
 use hcore::service::ServiceGroup;
-use hcore::templating::package::Pkg;
 use launcher_client::LauncherCli;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};

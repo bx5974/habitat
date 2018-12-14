@@ -19,8 +19,11 @@ extern crate ansi_term;
 extern crate bimap;
 extern crate glob;
 extern crate habitat_api_client as api_client;
+#[macro_use]
 extern crate habitat_core as hcore;
+extern crate handlebars;
 extern crate hyper;
+extern crate json;
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -29,11 +32,27 @@ extern crate pbr;
 extern crate petgraph;
 extern crate regex;
 extern crate retry;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+
+// This is a little gross, but we only need the macros in tests right
+// now.
+#[cfg(test)]
+#[macro_use]
+extern crate serde_json;
+#[cfg(not(test))]
+extern crate serde_json;
+
+extern crate serde_transcode;
+extern crate serde_yaml;
 extern crate tempfile;
 extern crate term;
 extern crate time;
 extern crate toml;
 extern crate uuid;
+extern crate valico;
+
 #[cfg(windows)]
 extern crate winapi;
 
@@ -44,4 +63,6 @@ pub mod defaults;
 pub mod error;
 pub mod locked_env_var;
 pub mod package_graph;
+pub mod templating;
 pub mod ui;
+pub mod util;

@@ -18,11 +18,11 @@ use std::path::{Path, PathBuf};
 #[cfg(not(windows))]
 use std::process::ExitStatus;
 
+use common::templating::hooks::{self, ExitCode, Hook, HookOutput, RenderPair};
+use common::templating::package::Pkg;
+use common::templating::TemplateRenderer;
 #[cfg(windows)]
 use hcore::os::process::windows_child::ExitStatus;
-use hcore::templating::hooks::{self, ExitCode, Hook, HookOutput, RenderPair};
-use hcore::templating::package::Pkg;
-use hcore::templating::TemplateRenderer;
 use serde::Serialize;
 
 use super::health;
@@ -747,11 +747,11 @@ mod tests {
     use butterfly::rumor::service_config::ServiceConfig as ServiceConfigRumor;
     use butterfly::rumor::service_file::ServiceFile as ServiceFileRumor;
     use butterfly::rumor::RumorStore;
+    use common::templating::config::Cfg;
+    use common::templating::package::Pkg;
+    use common::templating::test_helpers::*;
     use hcore::package::{PackageIdent, PackageInstall};
     use hcore::service::ServiceGroup;
-    use hcore::templating::config::Cfg;
-    use hcore::templating::package::Pkg;
-    use hcore::templating::test_helpers::*;
     use protocol;
     use tempfile::TempDir;
 
