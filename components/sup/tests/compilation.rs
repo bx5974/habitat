@@ -157,6 +157,89 @@ hook_value = "default"
 }
 
 #[test]
+fn install_success_sets_zero_status() {
+    let hab_root = utils::HabRoot::new("install_success_sets_zero_status");
+
+    let origin_name = "sup-integration-test";
+    let package_name = "install-hook-succeeds";
+    let service_group = "default";
+
+    utils::setup_package_files(
+        &origin_name,
+        &package_name,
+        &service_group,
+        &FIXTURE_ROOT,
+        &hab_root,
+    );
+
+    let mut test_sup = utils::TestSup::new_with_random_ports(
+        &hab_root,
+        &origin_name,
+        &package_name,
+        &service_group,
+    );
+
+    test_sup.start();
+    utils::sleep_seconds(3);
+
+    let status_created_before = hab_root.install_status_created(origin_name, package_name);
+
+    assert_eq!(hab_root.install_status_of(origin_name, package_name), 0);
+    assert!(hab_root.pid_of(package_name) > 0);
+
+    test_sup.stop();
+    utils::sleep_seconds(3);
+    test_sup.start();
+    utils::sleep_seconds(3);
+
+    let status_created_after = hab_root.install_status_created(origin_name, package_name);
+
+    assert_eq!(status_created_before, status_created_after);
+}
+
+#[test]
+fn install_fails_sets_one_status() {
+    let hab_root = utils::HabRoot::new("install_fails_sets_one_status");
+
+    let origin_name = "sup-integration-test";
+    let package_name = "install-hook-fails";
+    let service_group = "default";
+
+    utils::setup_package_files(
+        &origin_name,
+        &package_name,
+        &service_group,
+        &FIXTURE_ROOT,
+        &hab_root,
+    );
+
+    let mut test_sup = utils::TestSup::new_with_random_ports(
+        &hab_root,
+        &origin_name,
+        &package_name,
+        &service_group,
+    );
+
+    test_sup.start();
+    utils::sleep_seconds(3);
+
+    let status_created_before = hab_root.install_status_created(origin_name, package_name);
+    let result = std::panic::catch_unwind(|| hab_root.pid_of(package_name));
+
+    assert_eq!(hab_root.install_status_of(origin_name, package_name), 1);
+    assert!(result.is_err());
+
+    test_sup.stop();
+    utils::sleep_seconds(3);
+    test_sup.start();
+    utils::sleep_seconds(3);
+
+    let status_created_after = hab_root.install_status_created(origin_name, package_name);
+
+    assert_ne!(status_created_before, status_created_after);
+}
+
+#[test]
 fn hooks_change_but_config_files_do_not_still_restarts() {
     let hab_root = utils::HabRoot::new("hooks_change_but_config_files_do_not_still_restarts");
 

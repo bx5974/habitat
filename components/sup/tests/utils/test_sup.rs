@@ -273,6 +273,20 @@ impl TestSup {
         self.process = Some(child);
     }
 
+    /// Spawn a process actually running the Supervisor.
+    pub fn stop(&mut self) {
+        let mut ports = CLAIMED_PORTS.lock().unwrap();
+        ports.remove(&self.http_port);
+        ports.remove(&self.butterfly_port);
+        ports.remove(&self.control_port);
+        self.process
+            .take()
+            .expect("No process to kill!")
+            .kill()
+            .expect("Tried to kill Supervisor!");
+        self.process = None;
+    }
+
     /// The equivalent of performing `hab apply` with the given
     /// configuration.
     pub fn apply_config<T>(&mut self, toml_config: T)
@@ -287,14 +301,6 @@ impl TestSup {
 // ports used by this Supervisor so other tests can use them.
 impl Drop for TestSup {
     fn drop(&mut self) {
-        let mut ports = CLAIMED_PORTS.lock().unwrap();
-        ports.remove(&self.http_port);
-        ports.remove(&self.butterfly_port);
-        ports.remove(&self.control_port);
-        self.process
-            .take()
-            .expect("No process to kill!")
-            .kill()
-            .expect("Tried to kill Supervisor!");
+        self.stop();
     }
 }

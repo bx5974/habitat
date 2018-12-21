@@ -47,11 +47,13 @@ use butterfly;
 use butterfly::member::Member;
 use butterfly::server::{timing::Timing, ServerProxy, Suitability};
 use butterfly::trace::Trace;
+use common;
 pub use common::templating::package::Pkg;
 use futures::prelude::*;
 use futures::sync::mpsc;
 use hcore::crypto::SymKey;
 use hcore::env;
+use hcore::fs::FS_ROOT_PATH;
 use hcore::os::process::{self, Pid, Signal};
 use hcore::os::signals::{self, SignalEvent};
 use hcore::package::{Identifiable, PackageIdent, PackageInstall};
@@ -463,6 +465,36 @@ impl Manager {
                 return;
             }
         };
+
+        let package =
+            PackageInstall::load(&service.pkg.ident, Some(Path::new(&*FS_ROOT_PATH))).unwrap();
+        let ui = &mut common::ui::UI::with_sinks();
+        if let Ok(tdeps) = package.tdeps() {
+            for dependency in tdeps.iter() {
+                match PackageInstall::load(dependency, Some(Path::new(&*FS_ROOT_PATH))) {
+                    Ok(pkg) => {
+                        if let Err(err) =
+                            common::command::package::install::run_install_hook_when_failed(
+                                ui, &pkg,
+                            ) {
+                            outputln!("Failed to run install hook for {}, {}", &pkg.ident(), err);
+                            return;
+                        }
+                    }
+                    Err(err) => {
+                        outputln!("Failed to load package {}, {}", dependency, err);
+                        return;
+                    }
+                }
+            }
+        }
+
+        if let Err(err) =
+            common::command::package::install::run_install_hook_when_failed(ui, &package)
+        {
+            outputln!("Failed to run install hook for {}, {}", &spec.ident, err);
+            return;
+        }
 
         if let Err(e) = service.create_svc_path() {
             outputln!(

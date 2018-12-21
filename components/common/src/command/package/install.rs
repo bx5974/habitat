@@ -526,9 +526,7 @@ impl<'a> InstallTask<'a> {
             Some(package_install) => {
                 // The installed package was found on disk
                 ui.status(Status::Using, &target_ident)?;
-                if self.install_hook_mode == &InstallHookMode::Always {
-                    self.check_install_hooks(ui, &target_ident)?;
-                }
+                self.check_install_hooks(ui, &package_install)?;
                 ui.end(format!(
                     "Install of {} complete with {} new packages installed.",
                     &target_ident, 0
@@ -559,9 +557,7 @@ impl<'a> InstallTask<'a> {
             Some(package_install) => {
                 // The installed package was found on disk
                 ui.status(Status::Using, &target_ident)?;
-                if self.install_hook_mode == &InstallHookMode::Always {
-                    self.check_install_hooks(ui, &target_ident)?;
-                }
+                self.check_install_hooks(ui, &package_install)?;
                 ui.end(format!(
                     "Install of {} complete with {} new packages installed.",
                     &target_ident, 0
@@ -861,12 +857,10 @@ impl<'a> InstallTask<'a> {
         }
     }
 
-    fn check_install_hooks<T>(&self, ui: &mut T, ident: &FullyQualifiedPackageIdent) -> Result<()>
+    fn check_install_hooks<T>(&self, ui: &mut T, package: &PackageInstall) -> Result<()>
     where
         T: UIWriter,
     {
-        let package = PackageInstall::load(ident.as_ref(), Some(self.fs_root_path))?;
-
         for dependency in package.tdeps()?.iter() {
             self.check_install_hook(
                 ui,
