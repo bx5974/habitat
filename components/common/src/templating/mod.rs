@@ -203,7 +203,8 @@ mod test {
             r.ok().unwrap(),
             r#"{
   "test": "something"
-}"#.to_string()
+}"#
+            .to_string()
         );
     }
 
@@ -224,7 +225,8 @@ mod test {
         assert_eq!(
             r.ok().unwrap(),
             r#"test = "something"
-"#.to_string()
+"#
+            .to_string()
         );
     }
 
@@ -364,7 +366,8 @@ test: something"#
             .register_template_file(
                 "each_alive",
                 templates().join("each_alive_with_identifier.txt"),
-            ).unwrap();
+            )
+            .unwrap();
 
         // template using an each block with a nested if block filtering on `alive`
         renderer

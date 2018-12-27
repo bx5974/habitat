@@ -65,7 +65,8 @@ where
         &LocalPackageUsage::default(),
         // Install hooks are run when the supervisor loads the package
         &InstallHookMode::Never,
-    ).map_err(SupError::from)
+    )
+    .map_err(SupError::from)
 }
 
 /// Given an InstallSource, install a new package only if an existing

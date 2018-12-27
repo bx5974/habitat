@@ -79,11 +79,13 @@ pub fn setup_package_files<O, P, S>(
     let install = PackageInstall::load(
         &hab_root.pkg_ident(&origin_name, &package_name),
         Some(hab_root.as_ref()),
-    ).expect(
+    )
+    .expect(
         format!(
             "Could not load package {:?}/{:?}",
             &origin_name, &package_name
-        ).as_str(),
+        )
+        .as_str(),
     );
     if let Ok(tdeps) = install.tdeps() {
         for dependency in tdeps.iter() {

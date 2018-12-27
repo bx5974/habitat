@@ -280,8 +280,10 @@ baz = "boo"
 [foobar]
 one = 1
 two = 2
-"#.as_bytes(),
-            ).expect("Couldn't write default.toml");
+"#
+                .as_bytes(),
+            )
+            .expect("Couldn't write default.toml");
         (tmp, pkg)
     }
 

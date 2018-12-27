@@ -793,7 +793,7 @@ fn sub_pkg_install() -> App<'static, 'static> {
         (@arg BINLINK: -b --binlink "Binlink all binaries from installed package(s)")
         (@arg FORCE: -f --force "Overwrite existing binlinks")
         (@arg AUTH_TOKEN: -z --auth +takes_value "Authentication token for Builder")
-        (@arg INSTALL_HOOK_MODE: --("install-hook") +takes_value {valid_install_hook_mode} 
+        (@arg INSTALL_HOOK_MODE: --("install-hook") +takes_value {valid_install_hook_mode}
             "The install hook behavior; [default: once] [values: once, always, never]")
     );
     if feat::is_enabled(feat::OfflineInstall) {
