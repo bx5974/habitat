@@ -792,7 +792,6 @@ fn sub_pkg_install() -> App<'static, 'static> {
         (@arg BINLINK: -b --binlink "Binlink all binaries from installed package(s)")
         (@arg FORCE: -f --force "Overwrite existing binlinks")
         (@arg AUTH_TOKEN: -z --auth +takes_value "Authentication token for Builder")
-        (@arg IGNORE_INSTALL_HOOK: --("ignore-install-hook") "Do not run any install hooks")
     );
     if feat::is_enabled(feat::OfflineInstall) {
         sub = sub.arg(
@@ -806,6 +805,13 @@ fn sub_pkg_install() -> App<'static, 'static> {
             Arg::with_name("IGNORE_LOCAL")
                 .help("Do not use locally-installed packages when a corresponding package cannot be installed from Builder")
                 .long("ignore-local"),
+        );
+    };
+    if feat::is_enabled(feat::InstallHook) {
+        sub = sub.arg(
+            Arg::with_name("IGNORE_INSTALL_HOOK")
+                .help("Do not run any install hooks")
+                .long("ignore-install-hook"),
         );
     };
     sub

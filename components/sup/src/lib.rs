@@ -146,7 +146,8 @@ features! {
         const TestExit      = 0b00000010,
         const TestBootFail  = 0b00000100,
         const RedactHTTP    = 0b00001000,
-        const IgnoreSignals = 0b00010000
+        const IgnoreSignals = 0b00010000,
+        const InstallHook   = 0b00100000
     }
 }
 

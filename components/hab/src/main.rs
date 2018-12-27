@@ -672,7 +672,7 @@ fn sub_pkg_install(ui: &mut UI, m: &ArgMatches) -> Result<()> {
         LocalPackageUsage::default()
     };
 
-    let install_hook_mode = if m.is_present("IGNORE_INSTALL_HOOK") {
+    let install_hook_mode = if !feat::is_enabled(feat::InstallHook) || m.is_present("IGNORE_INSTALL_HOOK") {
         InstallHookMode::Ignore
     } else {
         InstallHookMode::default()
@@ -1429,6 +1429,7 @@ fn enable_features_from_env(ui: &mut UI) {
         (feat::List, "LIST"),
         (feat::OfflineInstall, "OFFLINE_INSTALL"),
         (feat::IgnoreLocal, "IGNORE_LOCAL"),
+        (feat::InstallHook, "INSTALL_HOOK"),
     ];
 
     // If the environment variable for a flag is set to _anything_ but

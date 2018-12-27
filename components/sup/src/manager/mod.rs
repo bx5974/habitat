@@ -466,16 +466,19 @@ impl Manager {
             }
         };
 
-        let package =
-            PackageInstall::load(&service.pkg.ident, Some(Path::new(&*FS_ROOT_PATH))).unwrap();
-        let ui = &mut common::ui::UI::with_sinks();
-        if let Err(err) = common::command::package::install::check_install_hooks(
-            ui,
-            &package,
-            Path::new(&*FS_ROOT_PATH),
-        ) {
-            outputln!("Failed to run install hook for {}, {}", &spec.ident, err);
-            return;
+        if feat::is_enabled(feat::InstallHook) {
+            if let Ok(package) =
+                PackageInstall::load(&service.pkg.ident, Some(Path::new(&*FS_ROOT_PATH)))
+            {
+                if let Err(err) = common::command::package::install::check_install_hooks(
+                    &mut common::ui::UI::with_sinks(),
+                    &package,
+                    Path::new(&*FS_ROOT_PATH),
+                ) {
+                    outputln!("Failed to run install hook for {}, {}", &spec.ident, err);
+                    return;
+                }
+            }
         }
 
         if let Err(e) = service.create_svc_path() {
