@@ -672,6 +672,12 @@ fn sub_pkg_install(ui: &mut UI, m: &ArgMatches) -> Result<()> {
         LocalPackageUsage::default()
     };
 
+    let install_hook_mode = if m.is_present("IGNORE_INSTALL_HOOK") {
+        InstallHookMode::Ignore
+    } else {
+        InstallHookMode::default()
+    };
+
     init();
 
     for install_source in install_sources.iter() {
@@ -687,7 +693,7 @@ fn sub_pkg_install(ui: &mut UI, m: &ArgMatches) -> Result<()> {
             token.as_ref().map(String::as_str),
             &install_mode,
             &local_package_usage,
-            &get_install_hook_mode(m),
+            &install_hook_mode,
         )?;
 
         if m.is_present("BINLINK") {
@@ -1653,14 +1659,6 @@ fn get_health_check_interval_from_input(
     m.value_of("HEALTH_CHECK_INTERVAL")
         .and_then(|s| HealthCheckInterval::from_str(s).ok())
         .map(|s| s.into())
-}
-
-fn get_install_hook_mode(m: &ArgMatches) -> InstallHookMode {
-    match m.value_of("INSTALL_HOOK_MODE") {
-        // unwrap ok because of valid_install_hook_mode has already run
-        Some(s) => InstallHookMode::from_str(s).unwrap(),
-        None => InstallHookMode::default(),
-    }
 }
 
 #[cfg(target_os = "windows")]

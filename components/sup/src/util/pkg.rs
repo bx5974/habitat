@@ -64,7 +64,7 @@ where
         // TODO (CM): pass through and enable ignore-local mode
         &LocalPackageUsage::default(),
         // Install hooks are run when the supervisor loads the package
-        &InstallHookMode::Never,
+        &InstallHookMode::Ignore,
     )
     .map_err(SupError::from)
 }

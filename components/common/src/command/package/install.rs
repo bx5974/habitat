@@ -202,31 +202,16 @@ impl Default for InstallMode {
 /// Governs how install hooks behave when loading packages
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum InstallHookMode {
-    /// Only run the install hook when the package is installed
-    Once,
-    /// Run the install hook and all dependent install hooks regardless
-    /// of whether the packages were previously installed
-    Always,
+    /// Run the install hook and all install hooks of dependent packages
+    /// that have not yet been run or have previously failed
+    Run,
     /// Do not run any install hooks when loading a package
-    Never,
+    Ignore,
 }
 
 impl Default for InstallHookMode {
     fn default() -> Self {
-        InstallHookMode::Once
-    }
-}
-
-impl FromStr for InstallHookMode {
-    type Err = Error;
-
-    fn from_str(value: &str) -> Result<Self> {
-        match value {
-            "once" => Ok(InstallHookMode::Once),
-            "always" => Ok(InstallHookMode::Always),
-            "never" => Ok(InstallHookMode::Never),
-            _ => return Err(Error::InvalidInstallHookMode(value.to_string())),
-        }
+        InstallHookMode::Run
     }
 }
 
@@ -545,7 +530,7 @@ impl<'a> InstallTask<'a> {
             Some(package_install) => {
                 // The installed package was found on disk
                 ui.status(Status::Using, &target_ident)?;
-                if self.install_hook_mode != &InstallHookMode::Never {
+                if self.install_hook_mode != &InstallHookMode::Ignore {
                     check_install_hooks(ui, &package_install, self.fs_root_path)?;
                 }
                 ui.end(format!(
@@ -578,7 +563,7 @@ impl<'a> InstallTask<'a> {
             Some(package_install) => {
                 // The installed package was found on disk
                 ui.status(Status::Using, &target_ident)?;
-                if self.install_hook_mode != &InstallHookMode::Never {
+                if self.install_hook_mode != &InstallHookMode::Ignore {
                     check_install_hooks(ui, &package_install, self.fs_root_path)?;
                 }
                 ui.end(format!(
@@ -745,7 +730,7 @@ impl<'a> InstallTask<'a> {
                         .is_some()
                     {
                         ui.status(Status::Using, dependency)?;
-                        if self.install_hook_mode != &InstallHookMode::Never {
+                        if self.install_hook_mode != &InstallHookMode::Ignore {
                             run_install_hook_when_failed(
                                 ui,
                                 &PackageInstall::load(dependency, Some(self.fs_root_path))?,
@@ -768,7 +753,7 @@ impl<'a> InstallTask<'a> {
                 // Ensure all uninstalled artifacts get installed
                 for artifact in artifacts_to_install.iter_mut() {
                     self.unpack_artifact(ui, artifact)?;
-                    if self.install_hook_mode != &InstallHookMode::Never {
+                    if self.install_hook_mode != &InstallHookMode::Ignore {
                         run_install_hook(
                             ui,
                             &PackageInstall::load(&artifact.ident()?, Some(self.fs_root_path))?,

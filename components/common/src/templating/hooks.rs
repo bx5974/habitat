@@ -323,7 +323,14 @@ impl Hook for InstallHook {
         if let Some(code) = status.code() {
             let path = pkg.path.join(INSTALL_HOOK_STATUS_FILE);
             if let Ok(mut f) = File::create(&path) {
-                write!(f, "{}", code);
+                if let Err(err) = write!(f, "{}", code) {
+                    outputln!(
+                        preamble name,
+                        "failed to write install hook status file to {:?}: {}",
+                        path,
+                        err
+                    );
+                }
             } else {
                 outputln!(
                     preamble name,
