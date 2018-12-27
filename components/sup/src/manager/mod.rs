@@ -469,29 +469,11 @@ impl Manager {
         let package =
             PackageInstall::load(&service.pkg.ident, Some(Path::new(&*FS_ROOT_PATH))).unwrap();
         let ui = &mut common::ui::UI::with_sinks();
-        if let Ok(tdeps) = package.tdeps() {
-            for dependency in tdeps.iter() {
-                match PackageInstall::load(dependency, Some(Path::new(&*FS_ROOT_PATH))) {
-                    Ok(pkg) => {
-                        if let Err(err) =
-                            common::command::package::install::run_install_hook_when_failed(
-                                ui, &pkg,
-                            ) {
-                            outputln!("Failed to run install hook for {}, {}", &pkg.ident(), err);
-                            return;
-                        }
-                    }
-                    Err(err) => {
-                        outputln!("Failed to load package {}, {}", dependency, err);
-                        return;
-                    }
-                }
-            }
-        }
-
-        if let Err(err) =
-            common::command::package::install::run_install_hook_when_failed(ui, &package)
-        {
+        if let Err(err) = common::command::package::install::check_install_hooks(
+            ui,
+            &package,
+            Path::new(&*FS_ROOT_PATH),
+        ) {
             outputln!("Failed to run install hook for {}, {}", &spec.ident, err);
             return;
         }

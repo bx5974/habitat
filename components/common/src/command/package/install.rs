@@ -408,7 +408,26 @@ where
     }
 }
 
-pub fn run_install_hook_when_failed<T>(ui: &mut T, package: &PackageInstall) -> Result<()>
+pub fn check_install_hooks<T, P>(
+    ui: &mut T,
+    package: &PackageInstall,
+    fs_root_path: P,
+) -> Result<()>
+where
+    T: UIWriter,
+    P: AsRef<Path>,
+{
+    for dependency in package.tdeps()?.iter() {
+        run_install_hook_when_failed(
+            ui,
+            &PackageInstall::load(dependency, Some(fs_root_path.as_ref()))?,
+        )?;
+    }
+
+    run_install_hook_when_failed(ui, &package)
+}
+
+fn run_install_hook_when_failed<T>(ui: &mut T, package: &PackageInstall) -> Result<()>
 where
     T: UIWriter,
 {
@@ -526,7 +545,9 @@ impl<'a> InstallTask<'a> {
             Some(package_install) => {
                 // The installed package was found on disk
                 ui.status(Status::Using, &target_ident)?;
-                self.check_install_hooks(ui, &package_install)?;
+                if self.install_hook_mode != &InstallHookMode::Never {
+                    check_install_hooks(ui, &package_install, self.fs_root_path)?;
+                }
                 ui.end(format!(
                     "Install of {} complete with {} new packages installed.",
                     &target_ident, 0
@@ -557,7 +578,9 @@ impl<'a> InstallTask<'a> {
             Some(package_install) => {
                 // The installed package was found on disk
                 ui.status(Status::Using, &target_ident)?;
-                self.check_install_hooks(ui, &package_install)?;
+                if self.install_hook_mode != &InstallHookMode::Never {
+                    check_install_hooks(ui, &package_install, self.fs_root_path)?;
+                }
                 ui.end(format!(
                     "Install of {} complete with {} new packages installed.",
                     &target_ident, 0
@@ -722,8 +745,8 @@ impl<'a> InstallTask<'a> {
                         .is_some()
                     {
                         ui.status(Status::Using, dependency)?;
-                        if self.install_hook_mode == &InstallHookMode::Always {
-                            run_install_hook(
+                        if self.install_hook_mode != &InstallHookMode::Never {
+                            run_install_hook_when_failed(
                                 ui,
                                 &PackageInstall::load(dependency, Some(self.fs_root_path))?,
                             )?;
@@ -855,31 +878,6 @@ impl<'a> InstallTask<'a> {
             }
             None => unreachable!("Install path doesn't have a parent"),
         }
-    }
-
-    fn check_install_hooks<T>(&self, ui: &mut T, package: &PackageInstall) -> Result<()>
-    where
-        T: UIWriter,
-    {
-        for dependency in package.tdeps()?.iter() {
-            self.check_install_hook(
-                ui,
-                &PackageInstall::load(dependency, Some(self.fs_root_path))?,
-            )?;
-        }
-
-        self.check_install_hook(ui, &package)
-    }
-
-    fn check_install_hook<T>(&self, ui: &mut T, package: &PackageInstall) -> Result<()>
-    where
-        T: UIWriter,
-    {
-        if self.install_hook_mode == &InstallHookMode::Always {
-            return run_install_hook(ui, package);
-        }
-
-        run_install_hook_when_failed(ui, package)
     }
 
     /// Adapter function to retrieve an installed package given an
