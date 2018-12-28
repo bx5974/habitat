@@ -170,6 +170,7 @@
     "path": "/hab/pkgs/core/template-probe/0.1.0/20180315155739",
     "release": "20180315155739",
     "svc_config_path": "/hab/svc/template-probe/config",
+    "svc_config_install_path": "/hab/svc/template-probe/config_install",
     "svc_data_path": "/hab/svc/template-probe/data",
     "svc_files_path": "/hab/svc/template-probe/files",
     "svc_group": "hab",
