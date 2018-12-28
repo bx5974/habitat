@@ -1970,6 +1970,27 @@ do_default_build_config() {
     done
     chmod 755 "$pkg_prefix"/config
   fi
+  if [[ "${HAB_FEAT_INSTALL_HOOK:-}" = "true" && -d "$PLAN_CONTEXT/config_install" ]]; then
+    if [[ -z "${HAB_CONFIG_EXCLUDE:-}" ]]; then
+      # HAB_CONFIG_EXCLUDE not set, use defaults
+      config_exclude_exts=("*.sw?" "*~" "*.bak")
+    else
+      IFS=',' read -r -a config_exclude_exts <<< "$HAB_CONFIG_EXCLUDE"
+    fi
+    find_exclusions=""
+    for ext in "${config_exclude_exts[@]}"; do
+      find_exclusions+=" ! -name $ext"
+    done
+    find "$PLAN_CONTEXT/config_install" "$find_exclusions" | while read -r FILE
+    do
+      if [[ -d "$FILE" ]]; then
+        mkdir -p "$pkg_prefix${FILE#$PLAN_CONTEXT}"
+      else
+        cp "$FILE" "$pkg_prefix${FILE#$PLAN_CONTEXT}"
+      fi
+    done
+    chmod 755 "$pkg_prefix"/config_install
+  fi
   if [[ -d "$PLAN_CONTEXT/hooks" ]]; then
     cp -r "$PLAN_CONTEXT/hooks" "$pkg_prefix"
     chmod 755 "$pkg_prefix"/hooks
