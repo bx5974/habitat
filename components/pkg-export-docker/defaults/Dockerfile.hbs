@@ -1,5 +1,7 @@
 FROM scratch
 ENV PATH {{path}}
+ENV HAB_FEAT_INSTALL_HOOK ON
+ENV OFFLINE_INSTALL ON
 ADD {{rootfs}} /
 
 EXPOSE 9631 {{exposes}}
