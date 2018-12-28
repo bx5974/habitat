@@ -289,6 +289,7 @@ pub fn cli<'a, 'b>() -> App<'a, 'b> {
         .add_tagging_args()
         .add_publishing_args()
         .add_memory_arg()
+        .add_user_toml_arg()
         .add_pkg_ident_arg(PkgIdentArgOptions { multiple: true })
         .app
 }

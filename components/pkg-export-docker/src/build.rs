@@ -81,6 +81,8 @@ pub struct BuildSpec<'a> {
     pub idents_or_archives: Vec<&'a str>,
     /// The Builder Auth Token to use in the request
     pub auth: Option<&'a str>,
+    /// A path to a user.toml to add to the rootfs
+    pub user_toml: Option<&'a str>,
 }
 
 impl<'a> BuildSpec<'a> {
@@ -101,6 +103,7 @@ impl<'a> BuildSpec<'a> {
             base_pkgs_url: m.value_of("BASE_PKGS_BLDR_URL").unwrap_or(&default_url),
             base_pkgs_channel: m.value_of("BASE_PKGS_CHANNEL").unwrap_or(&default_channel),
             auth: m.value_of("BLDR_AUTH_TOKEN"),
+            user_toml: m.value_of("USER_TOML"),
             idents_or_archives: m
                 .values_of("PKG_IDENT_OR_ARTIFACT")
                 .expect("No package specified")
@@ -124,7 +127,8 @@ impl<'a> BuildSpec<'a> {
             format!("build root in {}", workdir.path().display()),
         )?;
         self.prepare_rootfs(ui, &rootfs)?;
-        let ctx = BuildRootContext::from_spec(&self, rootfs)?;
+        let ctx = BuildRootContext::from_spec(&self, &rootfs)?;
+        self.install_user_toml(ui, &rootfs, &ctx)?;
 
         Ok(BuildRoot {
             workdir: workdir,
@@ -159,6 +163,28 @@ impl<'a> BuildSpec<'a> {
         self.install_user_pkgs(ui, &rootfs)?;
         self.remove_symlink_to_key_cache(ui, &rootfs)?;
         self.remove_symlink_to_artifact_cache(ui, &rootfs)?;
+
+        Ok(())
+    }
+
+    fn install_user_toml<P: AsRef<Path>>(
+        &self,
+        ui: &mut UI,
+        rootfs: P,
+        ctx: &BuildRootContext,
+    ) -> Result<()> {
+        if let Some(user_toml) = self.user_toml {
+            ui.status(Status::Creating, "user.toml")?;
+            let dst = rootfs
+                .as_ref()
+                .join("hab")
+                .join("user")
+                .join(ctx.primary_svc_ident().clone().name)
+                .join("config")
+                .join("user.toml");
+            stdfs::create_dir_all(dst.parent().expect("user.toml exists"))?;
+            stdfs::copy(user_toml, dst)?;
+        }
 
         Ok(())
     }
