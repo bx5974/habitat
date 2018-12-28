@@ -745,10 +745,10 @@ _install_dependency() {
               "${HAB_FEAT_IGNORE_LOCAL:-}" = "TRUE" ]]; then
         IGNORE_LOCAL="--ignore-local"
     fi
-    $HAB_BIN install -u $HAB_BLDR_URL --channel $HAB_BLDR_CHANNEL ${IGNORE_LOCAL:-} "$dep" || {
+    $HAB_BIN install -u $HAB_BLDR_URL --channel $HAB_BLDR_CHANNEL ${IGNORE_LOCAL:-} "$dep" $2 || {
       if [[ "$HAB_BLDR_CHANNEL" != "$FALLBACK_CHANNEL" ]]; then
         build_line "Trying to install '$dep' from '$FALLBACK_CHANNEL'"
-        $HAB_BIN install -u $HAB_BLDR_URL --channel "$FALLBACK_CHANNEL" ${IGNORE_LOCAL:-} "$dep" || true
+        $HAB_BIN install -u $HAB_BLDR_URL --channel "$FALLBACK_CHANNEL" ${IGNORE_LOCAL:-} "$dep" $2 || true
       fi
     }
   fi
@@ -1083,7 +1083,11 @@ _resolve_run_dependencies() {
 
   # Append to `${pkg_deps_resolved[@]}` all resolved direct run dependencies.
   for dep in "${pkg_deps[@]}"; do
-    _install_dependency "$dep"
+    if [[ "${HAB_FEAT_INSTALL_HOOK:-}" = "true" ]]; then
+      _install_dependency "$dep" "--ignore-install-hook"
+    else
+      _install_dependency "$dep"
+    fi
     if resolved="$(_resolve_dependency "$dep")"; then
       build_line "Resolved dependency '$dep' to $resolved"
       pkg_deps_resolved+=($resolved)

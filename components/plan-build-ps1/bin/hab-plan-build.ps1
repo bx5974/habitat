@@ -384,14 +384,14 @@ function _Set-HabBin {
   Write-BuildLine "Using HAB_BIN=$HAB_BIN for installs, signing, and hashing"
 }
 
-function _install-dependency($dependency) {
+function _install-dependency($dependency, $install_args = $null) {
   if (!$env:NO_INSTALL_DEPS) {
-    $cmd = "$HAB_BIN install -u $env:HAB_BLDR_URL --channel $env:HAB_BLDR_CHANNEL $dependency"
+    $cmd = "$HAB_BIN install -u $env:HAB_BLDR_URL --channel $env:HAB_BLDR_CHANNEL $dependency $install_args"
     if($env:HAB_FEAT_IGNORE_LOCAL -eq "true") { $cmd += " --ignore-local" }
     Invoke-Expression $cmd
     if ($LASTEXITCODE -ne 0 -and ($env:HAB_BLDR_URL -ne $FALLBACK_CHANNEL)) {
       Write-BuildLine "Trying to install '$dependency' from '$FALLBACK_CHANNEL'"
-      $cmd = "$HAB_BIN install -u $env:HAB_BLDR_URL --channel $FALLBACK_CHANNEL $dependency"
+      $cmd = "$HAB_BIN install -u $env:HAB_BLDR_URL --channel $FALLBACK_CHANNEL $dependency $install_args"
       if($env:HAB_FEAT_IGNORE_LOCAL -eq "true") { $cmd += " --ignore-local" }
       Invoke-Expression $cmd
     }
@@ -876,7 +876,11 @@ function _Set_DependencyArrays {
   # Build `${pkg_deps_resolved[@]}` containing all resolved direct run
   # dependencies.
   foreach($dep in $pkg_deps) {
-    _install-dependency $dep
+    if ($env:HAB_FEAT_INSTALL_HOOK) {
+      _install-dependency $dep "--ignore-install-hook"
+    } else {
+        _install-dependency $dep
+    }
     if ($resolved=(_resolve-dependency $dep)) {
       Write-BuildLine "Resolved dependency '$dep' to $resolved"
       $script:pkg_deps_resolved+=$resolved
