@@ -118,6 +118,7 @@ struct Package<'a> {
     path: Cow<'a, PathBuf>,
     svc_path: Cow<'a, PathBuf>,
     svc_config_path: Cow<'a, PathBuf>,
+    svc_config_install_path: Cow<'a, PathBuf>,
     svc_data_path: Cow<'a, PathBuf>,
     svc_files_path: Cow<'a, PathBuf>,
     svc_static_path: Cow<'a, PathBuf>,
@@ -147,6 +148,7 @@ impl<'a> Package<'a> {
             path: Cow::Borrowed(&pkg.path),
             svc_path: Cow::Borrowed(&pkg.svc_path),
             svc_config_path: Cow::Borrowed(&pkg.svc_config_path),
+            svc_config_install_path: Cow::Borrowed(&pkg.svc_config_install_path),
             svc_data_path: Cow::Borrowed(&pkg.svc_data_path),
             svc_files_path: Cow::Borrowed(&pkg.svc_files_path),
             svc_static_path: Cow::Borrowed(&pkg.svc_static_path),
@@ -193,6 +195,7 @@ impl<'a> Serialize for Package<'a> {
 
         map.serialize_entry("svc_path", &self.svc_path)?;
         map.serialize_entry("svc_config_path", &self.svc_config_path)?;
+        map.serialize_entry("svc_config_install_path", &self.svc_config_install_path)?;
         map.serialize_entry("svc_data_path", &self.svc_data_path)?;
         map.serialize_entry("svc_files_path", &self.svc_files_path)?;
         map.serialize_entry("svc_static_path", &self.svc_static_path)?;
@@ -327,6 +330,7 @@ two = 2
             path: Cow::Owned("my_path".into()),
             svc_path: Cow::Owned("svc_path".into()),
             svc_config_path: Cow::Owned("config_path".into()),
+            svc_config_install_path: Cow::Owned("config_install_path".into()),
             svc_data_path: Cow::Owned("data_path".into()),
             svc_files_path: Cow::Owned("files_path".into()),
             svc_static_path: Cow::Owned("static_path".into()),
