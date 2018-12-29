@@ -823,6 +823,7 @@ mod test {
             base_pkgs_channel: "base_pkgs_channel",
             idents_or_archives: Vec::new(),
             auth: Some("heresafakeauthtokenduh"),
+            user_toml: None,
         }
     }
 
