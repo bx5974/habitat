@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::env;
 use std::fs as stdfs;
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
@@ -548,6 +549,15 @@ impl BuildRootContext {
     pub fn installed_primary_svc_ident(&self) -> Result<PackageIdent> {
         let pkg_install = self.primary_svc()?;
         Ok(pkg_install.ident().clone())
+    }
+
+    /// If the INSTALL_HOOK feature is on, the dockerfile fragment that sets the feature
+    /// during the docker build so that the installs will run any install hooks
+    pub fn install_hook_env(&self) -> &str {
+        match env::var("HAB_FEAT_INSTALL_HOOK") {
+            Ok(_) => "ENV HAB_FEAT_INSTALL_HOOK ON",
+            _ => "",
+        }
     }
 
     /// Returns the list of package port exposes over all service packages.

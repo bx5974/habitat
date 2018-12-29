@@ -1,5 +1,5 @@
 FROM microsoft/windowsservercore
-ENV HAB_FEAT_INSTALL_HOOK ON
+{{install_hook_env}}
 ENV OFFLINE_INSTALL ON
 ADD {{rootfs}} /
 
