@@ -48,7 +48,7 @@ use time::Timespec;
 
 pub use self::composite_spec::CompositeSpec;
 use self::context::RenderContext;
-pub use self::health::{HealthCheck, SmokeCheck};
+pub use self::health::HealthCheck;
 use self::hooks::HookTable;
 pub use self::spec::{BindMap, DesiredState, IntoServiceSpec, ServiceBind, ServiceSpec, Spec};
 use self::supervisor::Supervisor;
