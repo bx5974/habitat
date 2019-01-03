@@ -37,14 +37,13 @@ use common::defaults::{
 use common::templating::hooks;
 use config::EnvConfig;
 use hcore::{crypto, env as henv, service::ServiceGroup};
-
 use rustls::ServerConfig;
 use serde_json::{self, Value as Json};
 
 use error::{Result, SupError};
 use manager;
-use manager::service::health::HealthCheck;
 use manager::service::hooks::HealthCheckHook;
+use manager::service::HealthCheck;
 
 use feat;
 
