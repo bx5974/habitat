@@ -162,7 +162,7 @@ impl Service {
     ) -> Result<Service> {
         spec.validate(&package)?;
         let all_pkg_binds = package.all_binds()?;
-        let pkg = Pkg::from_install(package)?;
+        let pkg = Pkg::from_install(&package)?;
         let spec_file = manager_fs_cfg.specs_path.join(spec.file_name());
         let service_group = ServiceGroup::new(
             spec.application_environment.as_ref(),
@@ -635,7 +635,7 @@ impl Service {
 
     /// Replace the package of the running service and restart its system process.
     pub fn update_package(&mut self, package: PackageInstall, launcher: &LauncherCli) {
-        match Pkg::from_install(package) {
+        match Pkg::from_install(&package) {
             Ok(pkg) => {
                 outputln!(preamble self.service_group,
                             "Updating service {} to {}", self.pkg.ident, pkg.ident);

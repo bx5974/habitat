@@ -104,7 +104,7 @@ pub struct Pkg {
 }
 
 impl Pkg {
-    pub fn from_install(package: PackageInstall) -> Result<Self> {
+    pub fn from_install(package: &PackageInstall) -> Result<Self> {
         let (svc_user, svc_group) = get_user_and_group(&package)?;
         let pkg = Pkg {
             svc_path: fs::svc_path(&package.ident.name),
@@ -122,17 +122,19 @@ impl Pkg {
             deps: package.tdeps()?,
             exposes: package.exposes()?,
             exports: package.exports()?,
-            path: package.installed_path,
+            path: package.installed_path.clone(),
             ident: package.ident.clone(),
             origin: package.ident.origin.clone(),
             name: package.ident.name.clone(),
             version: package
                 .ident
                 .version
+                .clone()
                 .expect("No package version in PackageInstall"),
             release: package
                 .ident
                 .release
+                .clone()
                 .expect("No package release in PackageInstall"),
         };
         Ok(pkg)

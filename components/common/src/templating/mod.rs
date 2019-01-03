@@ -35,7 +35,7 @@ use templating::hooks::{Hook, InstallHook};
 pub use self::context::RenderContext;
 
 pub fn compile_for_package_install(package: &PackageInstall) -> Result<()> {
-    let pkg = package::Pkg::from_install(package.clone())?;
+    let pkg = package::Pkg::from_install(package)?;
 
     fs::SvcDir::new(&pkg.name, &pkg.svc_user, &pkg.svc_group).create()?;
 

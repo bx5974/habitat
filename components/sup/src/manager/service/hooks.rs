@@ -842,7 +842,7 @@ mod tests {
             PathBuf::from("/tmp"),
             PathBuf::from("/tmp"),
         );
-        let pkg = Pkg::from_install(pkg_install).expect("Could not create package!");
+        let pkg = Pkg::from_install(&pkg_install).expect("Could not create package!");
 
         // This is gross, but it actually works
         let cfg_path = &concrete_path.as_path().join("default.toml");

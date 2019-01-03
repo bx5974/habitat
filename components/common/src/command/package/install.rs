@@ -454,7 +454,7 @@ where
         templating::compile_for_package_install(package)?;
         if !hook.run(
             &package.ident().name,
-            &Pkg::from_install(package.clone())?,
+            &Pkg::from_install(package)?,
             None::<String>,
         ) {
             return Err(Error::InstallHookFailed(package.ident().clone()));
