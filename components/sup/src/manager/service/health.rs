@@ -14,8 +14,6 @@
 
 use std::fmt;
 
-use actix_web::http::StatusCode;
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize)]
 pub enum HealthCheck {
     Ok,
@@ -51,16 +49,6 @@ impl fmt::Display for HealthCheck {
             HealthCheck::Unknown => "UNKNOWN",
         };
         write!(f, "{}", msg)
-    }
-}
-
-impl Into<StatusCode> for HealthCheck {
-    fn into(self) -> StatusCode {
-        match self {
-            HealthCheck::Ok | HealthCheck::Warning => StatusCode::OK,
-            HealthCheck::Critical => StatusCode::SERVICE_UNAVAILABLE,
-            HealthCheck::Unknown => StatusCode::INTERNAL_SERVER_ERROR,
-        }
     }
 }
 
