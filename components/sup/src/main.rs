@@ -212,7 +212,7 @@ fn sub_term() -> Result<()> {
 ////////////////////////////////////////////////////////////////////////
 
 fn mgrcfg_from_sup_run_matches(m: &ArgMatches) -> Result<ManagerConfig> {
-    let mut cfg = ManagerConfig {
+    let cfg = ManagerConfig {
         auto_update: m.is_present("AUTO_UPDATE"),
         update_url: bldr_url(m),
         update_channel: channel(m),
@@ -223,6 +223,40 @@ fn mgrcfg_from_sup_run_matches(m: &ArgMatches) -> Result<ManagerConfig> {
         gossip_peers: get_peers(m)?,
         watch_peer_file: m.value_of("PEER_WATCH_FILE").map(str::to_string),
         eventsrv_group: m.value_of("EVENTS").and_then(|events| events.parse().ok()),
+        // TODO: Refactor this to remove the duplication.
+        gossip_listen: m.value_of("LISTEN_GOSSIP").map_or_else(
+            || {
+                let default = sup::config::GossipListenAddr::default();
+                println!(
+                    "Value for LISTEN_GOSSIP has not been set. Using default: {}",
+                    default
+                );
+                Ok(default)
+            },
+            |v| v.parse(),
+        )?,
+        ctl_listen: m.value_of("LISTEN_CTL").map_or_else(
+            || {
+                let default = common::types::ListenCtlAddr::default();
+                println!(
+                    "Value for LISTEN_CTL has not been set. Using default: {}",
+                    default
+                );
+                Ok(default)
+            },
+            |v| v.parse(),
+        )?,
+        http_listen: m.value_of("LISTEN_HTTP").map_or_else(
+            || {
+                let default = sup::http_gateway::ListenAddr::default();
+                println!(
+                    "Value for LISTEN_HTTP has not been set. Using default: {}",
+                    default
+                );
+                Ok(default)
+            },
+            |v| v.parse(),
+        )?,
         tls_files: m.value_of("KEY_FILE").and_then(|kf| {
             Some((
                 PathBuf::from(kf),
@@ -232,20 +266,10 @@ fn mgrcfg_from_sup_run_matches(m: &ArgMatches) -> Result<ManagerConfig> {
                 ),
             ))
         }),
+        // default is only included here for the custom_state_path field which will ideally eventually
+        // be removed, it only exists to manipulate test data.
         ..Default::default()
     };
-
-    if let Some(gossip_listen) = m.value_of("LISTEN_GOSSIP") {
-        cfg.gossip_listen = gossip_listen.parse()?;
-    }
-
-    if let Some(http_listen) = m.value_of("LISTEN_HTTP") {
-        cfg.http_listen = http_listen.parse()?;
-    }
-
-    if let Some(ctl_listen) = m.value_of("LISTEN_CTL") {
-        cfg.ctl_listen = ctl_listen.parse()?;
-    }
 
     Ok(cfg)
 }
