@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::env;
 use std::fs as stdfs;
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
@@ -31,6 +30,7 @@ use common::ui::{Status, UIWriter, UI};
 use failure::SyncFailure;
 #[cfg(unix)]
 use hab;
+use hcore::env;
 use hcore::fs::{cache_artifact_path, cache_key_path, CACHE_ARTIFACT_PATH, CACHE_KEY_PATH};
 use hcore::package::{PackageArchive, PackageIdent, PackageInstall};
 use hcore::PROGRAM_NAME;
@@ -176,13 +176,10 @@ impl<'a> BuildSpec<'a> {
     ) -> Result<()> {
         if let Some(user_toml) = self.user_toml {
             ui.status(Status::Creating, "user.toml")?;
-            let dst = rootfs
-                .as_ref()
-                .join("hab")
-                .join("user")
-                .join(ctx.primary_svc_ident().clone().name)
-                .join("config")
-                .join("user.toml");
+            let dst = rootfs.as_ref().join(format!(
+                "hab/user/{}/config/user.toml",
+                ctx.primary_svc_ident().name
+            ));
             stdfs::create_dir_all(dst.parent().expect("user.toml exists"))?;
             stdfs::copy(user_toml, dst)?;
         }

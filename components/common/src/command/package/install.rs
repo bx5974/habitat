@@ -403,16 +403,16 @@ where
     P: AsRef<Path>,
 {
     for dependency in package.tdeps()?.iter() {
-        run_install_hook_when_failed(
+        run_install_hook_unless_already_successful(
             ui,
             &PackageInstall::load(dependency, Some(fs_root_path.as_ref()))?,
         )?;
     }
 
-    run_install_hook_when_failed(ui, &package)
+    run_install_hook_unless_already_successful(ui, &package)
 }
 
-fn run_install_hook_when_failed<T>(ui: &mut T, package: &PackageInstall) -> Result<()>
+fn run_install_hook_unless_already_successful<T>(ui: &mut T, package: &PackageInstall) -> Result<()>
 where
     T: UIWriter,
 {
@@ -731,7 +731,7 @@ impl<'a> InstallTask<'a> {
                     {
                         ui.status(Status::Using, dependency)?;
                         if self.install_hook_mode != &InstallHookMode::Ignore {
-                            run_install_hook_when_failed(
+                            run_install_hook_unless_already_successful(
                                 ui,
                                 &PackageInstall::load(dependency, Some(self.fs_root_path))?,
                             )?;
